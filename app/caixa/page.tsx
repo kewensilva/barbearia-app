@@ -1,14 +1,32 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { atendimentosDoDia } from "@/lib/mockData";
 
-// TODO (backend real): substituir `atendimentosDoDia` por uma query real
-// filtrando transactions por org_id + data, e somar expenses do mesmo
-// período para chegar no saldo líquido (ver seção 5 do plano-mvp.md).
+type Atendimento = {
+  id: string;
+  valor_cobrado: number;
+  forma_pagamento: "dinheiro" | "pix" | "cartao";
+  criado_em: string;
+  users: { nome: string } | null;
+  services: { nome: string } | null;
+};
+
 export default function Caixa() {
   const router = useRouter();
-  const total = atendimentosDoDia.reduce((soma, a) => soma + a.valor, 0);
+  const [atendimentos, setAtendimentos] = useState<Atendimento[]>([]);
+  const [carregando, setCarregando] = useState(true);
+  const [erro, setErro] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetch("/api/atendimentos")
+      .then((r) => r.json())
+      .then(setAtendimentos)
+      .catch(() => setErro("Não foi possível carregar o caixa"))
+      .finally(() => setCarregando(false));
+  }, []);
+
+  const total = atendimentos.reduce((soma, a) => soma + a.valor_cobrado, 0);
 
   return (
     <main>
@@ -26,21 +44,32 @@ export default function Caixa() {
         </button>
       </div>
 
+      {erro && <p className="subtitle" style={{ color: "#dc2626" }}>{erro}</p>}
+
       <div className="card">
         <p className="subtitle" style={{ marginBottom: 0 }}>Total do dia</p>
         <div className="total">R$ {total.toFixed(2)}</div>
       </div>
 
       <div className="card">
-        {atendimentosDoDia.map((a) => (
+        {carregando && <p className="subtitle">Carregando...</p>}
+        {!carregando && atendimentos.length === 0 && (
+          <p className="subtitle">Nenhum atendimento hoje ainda</p>
+        )}
+        {atendimentos.map((a) => (
           <div key={a.id} className="tx-item">
             <div>
-              <div>{a.servicoNome}</div>
+              <div>{a.services?.nome}</div>
               <div className="subtitle" style={{ marginBottom: 0 }}>
-                {a.barbeiroNome} · {a.horario} · {a.formaPagamento}
+                {a.users?.nome} ·{" "}
+                {new Date(a.criado_em).toLocaleTimeString("pt-BR", {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })}{" "}
+                · {a.forma_pagamento}
               </div>
             </div>
-            <div>R$ {a.valor.toFixed(2)}</div>
+            <div>R$ {a.valor_cobrado.toFixed(2)}</div>
           </div>
         ))}
       </div>

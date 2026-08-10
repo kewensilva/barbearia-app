@@ -1,38 +1,66 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { usuarios } from "@/lib/mockData";
 
-// TODO (backend real): validar PIN via Supabase (hash bcrypt na tabela users),
-// registrar tentativas falhas e bloqueio temporário conforme CLAUDE.md.
-const PIN_MOCK = "1234"; // qualquer usuário aceita este PIN neste esqueleto
+type Usuario = {
+  id: string;
+  nome: string;
+  role: "admin" | "barber";
+};
 
 export default function Home() {
   const router = useRouter();
-  const [usuarioSelecionado, setUsuarioSelecionado] = useState<
-    (typeof usuarios)[number] | null
-  >(null);
+  const [usuarios, setUsuarios] = useState<Usuario[]>([]);
+  const [usuarioSelecionado, setUsuarioSelecionado] = useState<Usuario | null>(null);
   const [pin, setPin] = useState("");
-  const [erro, setErro] = useState(false);
+  const [erro, setErro] = useState<string | null>(null);
+  const [verificando, setVerificando] = useState(false);
 
-  function digitar(numero: string) {
-    if (pin.length >= 4) return;
+  useEffect(() => {
+    fetch("/api/usuarios")
+      .then((r) => r.json())
+      .then(setUsuarios)
+      .catch(() => setErro("Não foi possível carregar os usuários"));
+  }, []);
+
+  async function digitar(numero: string) {
+    if (pin.length >= 4 || verificando) return;
     const novoPin = pin + numero;
     setPin(novoPin);
-    setErro(false);
+    setErro(null);
 
-    if (novoPin.length === 4) {
-      setTimeout(() => {
-        if (novoPin === PIN_MOCK) {
-          const destino =
-            usuarioSelecionado?.role === "admin" ? "/caixa" : "/lancamento";
-          router.push(`${destino}?usuario=${usuarioSelecionado?.id}`);
+    if (novoPin.length === 4 && usuarioSelecionado) {
+      setVerificando(true);
+      try {
+        const res = await fetch("/api/auth/pin", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ usuarioId: usuarioSelecionado.id, pin: novoPin }),
+        });
+        const dados = await res.json();
+
+        if (res.status === 423) {
+          const ate = new Date(dados.bloqueadoAte).toLocaleTimeString("pt-BR", {
+            hour: "2-digit",
+            minute: "2-digit",
+          });
+          setErro(`Bloqueado até ${ate}`);
+          setPin("");
+        } else if (dados.ok) {
+          const destino = dados.usuario.role === "admin" ? "/caixa" : "/lancamento";
+          router.push(`${destino}?usuario=${dados.usuario.id}`);
+          return;
         } else {
-          setErro(true);
+          setErro(dados.bloqueadoAte ? "PIN incorreto. Bloqueado por tentativas." : "PIN incorreto, tente de novo");
           setPin("");
         }
-      }, 150);
+      } catch {
+        setErro("Falha ao validar PIN, tente de novo");
+        setPin("");
+      } finally {
+        setVerificando(false);
+      }
     }
   }
 
@@ -57,9 +85,7 @@ export default function Home() {
   return (
     <main>
       <h1>Olá, {usuarioSelecionado.nome.split(" ")[0]}</h1>
-      <p className="subtitle">
-        {erro ? "PIN incorreto, tente de novo" : "Digite seu PIN"}
-      </p>
+      <p className="subtitle">{erro ?? "Digite seu PIN"}</p>
 
       <div className="pin-dots">
         {[0, 1, 2, 3].map((i) => (
@@ -73,14 +99,18 @@ export default function Home() {
             {n}
           </button>
         ))}
-        <button onClick={() => setUsuarioSelecionado(null)}>voltar</button>
+        <button
+          onClick={() => {
+            setUsuarioSelecionado(null);
+            setPin("");
+            setErro(null);
+          }}
+        >
+          voltar
+        </button>
         <button onClick={() => digitar("0")}>0</button>
         <button onClick={() => setPin(pin.slice(0, -1))}>⌫</button>
       </div>
-
-      <p className="subtitle" style={{ marginTop: 24, textAlign: "center" }}>
-        (PIN de teste neste esqueleto: 1234)
-      </p>
     </main>
   );
 }

@@ -1,35 +1,62 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { servicos, usuarios } from "@/lib/mockData";
 
 type FormaPagamento = "dinheiro" | "pix" | "cartao";
+type Servico = { id: string; nome: string; preco: number };
 
-// TODO (backend real): trocar o alert() final por um insert na tabela
-// `transactions` via Supabase (org_id, barber_id, service_id, valor_cobrado,
-// forma_pagamento, origem). Ver schema.sql.
 export default function Lancamento() {
   const router = useRouter();
   const params = useSearchParams();
-  const usuarioId = params.get("usuario");
-  const usuario = usuarios.find((u) => u.id === usuarioId) ?? usuarios[1];
+  const usuarioId = params.get("usuario") ?? "";
 
+  const [nomeUsuario, setNomeUsuario] = useState("");
+  const [servicos, setServicos] = useState<Servico[]>([]);
   const [servicoId, setServicoId] = useState<string | null>(null);
   const [pagamento, setPagamento] = useState<FormaPagamento | null>(null);
   const [origem, setOrigem] = useState<"agendado" | "encaixe">("agendado");
+  const [salvando, setSalvando] = useState(false);
   const [salvo, setSalvo] = useState(false);
+  const [erro, setErro] = useState<string | null>(null);
 
-  const servico = servicos.find((s) => s.id === servicoId);
-  const podeConfirmar = servico && pagamento;
+  useEffect(() => {
+    fetch("/api/servicos")
+      .then((r) => r.json())
+      .then(setServicos)
+      .catch(() => setErro("Não foi possível carregar os serviços"));
 
-  function confirmar() {
-    setSalvo(true);
-    setTimeout(() => {
-      setSalvo(false);
-      setServicoId(null);
-      setPagamento(null);
-    }, 1200);
+    fetch("/api/usuarios")
+      .then((r) => r.json())
+      .then((usuarios: { id: string; nome: string }[]) => {
+        setNomeUsuario(usuarios.find((u) => u.id === usuarioId)?.nome ?? "");
+      });
+  }, [usuarioId]);
+
+  const podeConfirmar = servicoId && pagamento && !salvando;
+
+  async function confirmar() {
+    if (!servicoId || !pagamento) return;
+    setSalvando(true);
+    setErro(null);
+    try {
+      const res = await fetch("/api/atendimentos", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ usuarioId, servicoId, formaPagamento: pagamento, origem }),
+      });
+      if (!res.ok) throw new Error();
+      setSalvo(true);
+      setTimeout(() => {
+        setSalvo(false);
+        setServicoId(null);
+        setPagamento(null);
+      }, 1200);
+    } catch {
+      setErro("Não foi possível lançar o atendimento, tente de novo");
+    } finally {
+      setSalvando(false);
+    }
   }
 
   return (
@@ -37,7 +64,7 @@ export default function Lancamento() {
       <div className="row">
         <div>
           <h1>Novo atendimento</h1>
-          <p className="subtitle">{usuario.nome}</p>
+          <p className="subtitle">{nomeUsuario}</p>
         </div>
         <button
           className="tag"
@@ -47,6 +74,8 @@ export default function Lancamento() {
           trocar usuário
         </button>
       </div>
+
+      {erro && <p className="subtitle" style={{ color: "#dc2626" }}>{erro}</p>}
 
       <p className="subtitle" style={{ marginBottom: 8 }}>Serviço</p>
       {servicos.map((s) => (
@@ -98,7 +127,7 @@ export default function Lancamento() {
         disabled={!podeConfirmar}
         onClick={confirmar}
       >
-        {salvo ? "Lançado ✓" : "Confirmar atendimento"}
+        {salvo ? "Lançado ✓" : salvando ? "Lançando..." : "Confirmar atendimento"}
       </button>
     </main>
   );
