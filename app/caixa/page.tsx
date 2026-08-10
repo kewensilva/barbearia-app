@@ -84,12 +84,27 @@ export default function Caixa() {
       >
         Fechar caixa
       </button>
-      <button className="primary-btn" style={{ background: "#78716c" }} disabled>
-        Lançar despesa (em breve)
+      <button
+        className="primary-btn"
+        style={{ background: "#78716c" }}
+        onClick={() =>
+          router.push(`/confirmar-pin?usuario=${usuarioId}&destino=/despesas`)
+        }
+      >
+        Lançar despesa
       </button>
       <button
         className="primary-btn"
         style={{ background: "#57534e" }}
+        onClick={() =>
+          router.push(`/confirmar-pin?usuario=${usuarioId}&destino=/relatorio`)
+        }
+      >
+        Relatório
+      </button>
+      <button
+        className="primary-btn"
+        style={{ background: "#a8a29e" }}
         onClick={() =>
           router.push(`/confirmar-pin?usuario=${usuarioId}&destino=/configuracoes`)
         }
