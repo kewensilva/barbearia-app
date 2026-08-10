@@ -76,8 +76,13 @@ export default function Caixa() {
         ))}
       </div>
 
-      <button className="primary-btn" disabled>
-        Fechar caixa (em breve)
+      <button
+        className="primary-btn"
+        onClick={() =>
+          router.push(`/confirmar-pin?usuario=${usuarioId}&destino=/fechamentos`)
+        }
+      >
+        Fechar caixa
       </button>
       <button className="primary-btn" style={{ background: "#78716c" }} disabled>
         Lançar despesa (em breve)
