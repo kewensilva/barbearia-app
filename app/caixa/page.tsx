@@ -78,6 +78,12 @@ export default function Caixa() {
 
       <button
         className="primary-btn"
+        onClick={() => router.push(`/lancamento?usuario=${usuarioId}`)}
+      >
+        Novo atendimento
+      </button>
+      <button
+        className="primary-btn"
         onClick={() =>
           router.push(`/confirmar-pin?usuario=${usuarioId}&destino=/fechamentos`)
         }
@@ -110,6 +116,24 @@ export default function Caixa() {
         }
       >
         Configurações
+      </button>
+      <button
+        className="primary-btn"
+        style={{ background: "#a8a29e" }}
+        onClick={() =>
+          router.push(`/confirmar-pin?usuario=${usuarioId}&destino=/usuarios`)
+        }
+      >
+        Usuários
+      </button>
+      <button
+        className="primary-btn"
+        style={{ background: "#a8a29e" }}
+        onClick={() =>
+          router.push(`/confirmar-pin?usuario=${usuarioId}&destino=/servicos`)
+        }
+      >
+        Serviços
       </button>
     </main>
   );

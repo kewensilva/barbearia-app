@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 
 type ResumoUsuario = {
   id: string;
@@ -25,6 +25,8 @@ type Pendente = {
 
 export default function Fechamentos() {
   const router = useRouter();
+  const params = useSearchParams();
+  const usuarioId = params.get("usuario") ?? "";
   const [resumo, setResumo] = useState<ResumoUsuario[]>([]);
   const [pendentesPagamento, setPendentesPagamento] = useState<Pendente[]>([]);
   const [carregando, setCarregando] = useState(true);
@@ -77,8 +79,12 @@ export default function Fechamentos() {
     <main>
       <div className="row">
         <h1>Fechamentos</h1>
-        <button className="tag" style={{ border: "none", cursor: "pointer" }} onClick={() => router.push("/")}>
-          trocar usuário
+        <button
+          className="tag"
+          style={{ border: "none", cursor: "pointer" }}
+          onClick={() => router.push(`/caixa?usuario=${usuarioId}`)}
+        >
+          voltar
         </button>
       </div>
       <p className="subtitle">Confira o pendente e feche o período de cada pessoa</p>

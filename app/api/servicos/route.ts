@@ -4,19 +4,47 @@ import { getOrgId } from "@/lib/org";
 
 export const dynamic = "force-dynamic";
 
-export async function GET() {
+export async function GET(request: Request) {
   const orgId = await getOrgId();
+  const { searchParams } = new URL(request.url);
+  const todos = searchParams.get("todos") === "1";
 
-  const { data, error } = await supabaseAdmin
+  let query = supabaseAdmin
     .from("services")
-    .select("id, nome, preco")
+    .select("id, nome, preco, ativo")
     .eq("org_id", orgId)
-    .eq("ativo", true)
     .order("nome");
+
+  if (!todos) {
+    query = query.eq("ativo", true);
+  }
+
+  const { data, error } = await query;
 
   if (error) {
     return NextResponse.json({ erro: error.message }, { status: 500 });
   }
 
   return NextResponse.json(data);
+}
+
+export async function POST(request: Request) {
+  const orgId = await getOrgId();
+  const { nome, preco } = await request.json();
+
+  if (typeof nome !== "string" || nome.trim() === "" || typeof preco !== "number" || preco <= 0) {
+    return NextResponse.json({ erro: "Requisição inválida" }, { status: 400 });
+  }
+
+  const { data, error } = await supabaseAdmin
+    .from("services")
+    .insert({ org_id: orgId, nome: nome.trim(), preco })
+    .select("id, nome, preco, ativo")
+    .single();
+
+  if (error) {
+    return NextResponse.json({ erro: error.message }, { status: 500 });
+  }
+
+  return NextResponse.json(data, { status: 201 });
 }

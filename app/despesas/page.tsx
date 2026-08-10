@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 
 type Categoria = "aluguel" | "energia" | "internet" | "produtos" | "outros";
 type Despesa = {
@@ -22,6 +22,8 @@ function hoje() {
 
 export default function Despesas() {
   const router = useRouter();
+  const params = useSearchParams();
+  const usuarioId = params.get("usuario") ?? "";
   const [despesas, setDespesas] = useState<Despesa[]>([]);
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
@@ -74,8 +76,12 @@ export default function Despesas() {
     <main>
       <div className="row">
         <h1>Despesas</h1>
-        <button className="tag" style={{ border: "none", cursor: "pointer" }} onClick={() => router.push("/")}>
-          trocar usuário
+        <button
+          className="tag"
+          style={{ border: "none", cursor: "pointer" }}
+          onClick={() => router.push(`/caixa?usuario=${usuarioId}`)}
+        >
+          voltar
         </button>
       </div>
       <p className="subtitle">Cadastro de despesas da barbearia</p>

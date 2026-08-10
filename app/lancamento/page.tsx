@@ -12,6 +12,7 @@ export default function Lancamento() {
   const usuarioId = params.get("usuario") ?? "";
 
   const [nomeUsuario, setNomeUsuario] = useState("");
+  const [roleUsuario, setRoleUsuario] = useState<"admin" | "barber" | null>(null);
   const [servicos, setServicos] = useState<Servico[]>([]);
   const [servicoId, setServicoId] = useState<string | null>(null);
   const [pagamento, setPagamento] = useState<FormaPagamento | null>(null);
@@ -28,8 +29,10 @@ export default function Lancamento() {
 
     fetch("/api/usuarios")
       .then((r) => r.json())
-      .then((usuarios: { id: string; nome: string }[]) => {
-        setNomeUsuario(usuarios.find((u) => u.id === usuarioId)?.nome ?? "");
+      .then((usuarios: { id: string; nome: string; role: "admin" | "barber" }[]) => {
+        const atual = usuarios.find((u) => u.id === usuarioId);
+        setNomeUsuario(atual?.nome ?? "");
+        setRoleUsuario(atual?.role ?? null);
       });
   }, [usuarioId]);
 
@@ -66,13 +69,24 @@ export default function Lancamento() {
           <h1>Novo atendimento</h1>
           <p className="subtitle">{nomeUsuario}</p>
         </div>
-        <button
-          className="tag"
-          style={{ border: "none", cursor: "pointer" }}
-          onClick={() => router.push("/")}
-        >
-          trocar usuário
-        </button>
+        <div className="row" style={{ gap: 8 }}>
+          {roleUsuario === "admin" && (
+            <button
+              className="tag"
+              style={{ border: "none", cursor: "pointer" }}
+              onClick={() => router.push(`/caixa?usuario=${usuarioId}`)}
+            >
+              ver caixa
+            </button>
+          )}
+          <button
+            className="tag"
+            style={{ border: "none", cursor: "pointer" }}
+            onClick={() => router.push("/")}
+          >
+            trocar usuário
+          </button>
+        </div>
       </div>
 
       {erro && <p className="subtitle" style={{ color: "#dc2626" }}>{erro}</p>}

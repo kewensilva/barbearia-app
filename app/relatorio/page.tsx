@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 
 type Preset = "hoje" | "semana" | "mes" | "custom";
 
@@ -35,6 +35,8 @@ function periodoDoPreset(preset: Preset): { inicio: string; fim: string } {
 
 export default function Relatorio() {
   const router = useRouter();
+  const params = useSearchParams();
+  const usuarioId = params.get("usuario") ?? "";
   const [preset, setPreset] = useState<Preset>("mes");
   const [{ inicio, fim }, setPeriodo] = useState(periodoDoPreset("mes"));
   const [relatorio, setRelatorio] = useState<Relatorio | null>(null);
@@ -63,8 +65,12 @@ export default function Relatorio() {
     <main>
       <div className="row">
         <h1>Relatório</h1>
-        <button className="tag" style={{ border: "none", cursor: "pointer" }} onClick={() => router.push("/")}>
-          trocar usuário
+        <button
+          className="tag"
+          style={{ border: "none", cursor: "pointer" }}
+          onClick={() => router.push(`/caixa?usuario=${usuarioId}`)}
+        >
+          voltar
         </button>
       </div>
       <p className="subtitle">Fluxo de caixa consolidado por período</p>

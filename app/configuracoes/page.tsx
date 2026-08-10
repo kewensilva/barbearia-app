@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 
 type Periodicidade = "diario" | "semanal" | "quinzenal" | "mensal";
 type TipoComissao = "percentual" | "fixo";
@@ -17,6 +17,8 @@ const PERIODICIDADES: Periodicidade[] = ["diario", "semanal", "quinzenal", "mens
 
 export default function Configuracoes() {
   const router = useRouter();
+  const params = useSearchParams();
+  const usuarioId = params.get("usuario") ?? "";
   const [barbeiros, setBarbeiros] = useState<BarbeiroConfig[]>([]);
   const [carregando, setCarregando] = useState(true);
   const [salvandoId, setSalvandoId] = useState<string | null>(null);
@@ -61,8 +63,12 @@ export default function Configuracoes() {
     <main>
       <div className="row">
         <h1>Configurações</h1>
-        <button className="tag" style={{ border: "none", cursor: "pointer" }} onClick={() => router.push("/")}>
-          trocar usuário
+        <button
+          className="tag"
+          style={{ border: "none", cursor: "pointer" }}
+          onClick={() => router.push(`/caixa?usuario=${usuarioId}`)}
+        >
+          voltar
         </button>
       </div>
       <p className="subtitle">Comissão e periodicidade de fechamento por barbeiro</p>
