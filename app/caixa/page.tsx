@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 
 type Atendimento = {
   id: string;
@@ -14,6 +14,8 @@ type Atendimento = {
 
 export default function Caixa() {
   const router = useRouter();
+  const params = useSearchParams();
+  const usuarioId = params.get("usuario") ?? "";
   const [atendimentos, setAtendimentos] = useState<Atendimento[]>([]);
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
@@ -79,6 +81,15 @@ export default function Caixa() {
       </button>
       <button className="primary-btn" style={{ background: "#78716c" }} disabled>
         Lançar despesa (em breve)
+      </button>
+      <button
+        className="primary-btn"
+        style={{ background: "#57534e" }}
+        onClick={() =>
+          router.push(`/confirmar-pin?usuario=${usuarioId}&destino=/configuracoes`)
+        }
+      >
+        Configurações
       </button>
     </main>
   );

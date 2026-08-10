@@ -164,3 +164,53 @@ h1 {
   background: #f0f0f0;
   color: #57534e;
 }
+
+.input {
+  width: 100%;
+  padding: 14px;
+  font-size: 16px;
+  border-radius: 12px;
+  border: 1px solid #d6d3d1;
+  background: white;
+  margin-bottom: 12px;
+}
+
+.option-btn {
+  flex: 1;
+  padding: 14px 8px;
+  border-radius: 12px;
+  border: none;
+  background: #e7e5e4;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.option-btn.selected {
+  background: #1c1917;
+  color: white;
+}
+
+.section-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #57534e;
+  margin: 16px 0 8px;
+}
+
+.small-btn {
+  padding: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  border-radius: 12px;
+  border: none;
+  background: #1c1917;
+  color: white;
+  cursor: pointer;
+  margin-top: 12px;
+  width: 100%;
+}
+
+.small-btn:disabled {
+  background: #d6d3d1;
+  cursor: not-allowed;
+}

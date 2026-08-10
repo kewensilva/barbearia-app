@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { getOrgId } from "@/lib/org";
 
+export const dynamic = "force-dynamic";
+
 export async function GET() {
   const orgId = await getOrgId();
 
