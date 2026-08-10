@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
 type Atendimento = {
@@ -13,6 +13,14 @@ type Atendimento = {
 };
 
 export default function Caixa() {
+  return (
+    <Suspense fallback={<main />}>
+      <CaixaContent />
+    </Suspense>
+  );
+}
+
+function CaixaContent() {
   const router = useRouter();
   const params = useSearchParams();
   const usuarioId = params.get("usuario") ?? "";

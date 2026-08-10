@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
 type Preset = "hoje" | "semana" | "mes" | "custom";
@@ -34,6 +34,14 @@ function periodoDoPreset(preset: Preset): { inicio: string; fim: string } {
 }
 
 export default function Relatorio() {
+  return (
+    <Suspense fallback={<main />}>
+      <RelatorioContent />
+    </Suspense>
+  );
+}
+
+function RelatorioContent() {
   const router = useRouter();
   const params = useSearchParams();
   const usuarioId = params.get("usuario") ?? "";

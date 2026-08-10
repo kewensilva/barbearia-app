@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
 type Categoria = "aluguel" | "energia" | "internet" | "produtos" | "outros";
@@ -21,6 +21,14 @@ function hoje() {
 }
 
 export default function Despesas() {
+  return (
+    <Suspense fallback={<main />}>
+      <DespesasContent />
+    </Suspense>
+  );
+}
+
+function DespesasContent() {
   const router = useRouter();
   const params = useSearchParams();
   const usuarioId = params.get("usuario") ?? "";

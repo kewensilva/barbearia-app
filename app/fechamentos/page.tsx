@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
 type ResumoUsuario = {
@@ -24,6 +24,14 @@ type Pendente = {
 };
 
 export default function Fechamentos() {
+  return (
+    <Suspense fallback={<main />}>
+      <FechamentosContent />
+    </Suspense>
+  );
+}
+
+function FechamentosContent() {
   const router = useRouter();
   const params = useSearchParams();
   const usuarioId = params.get("usuario") ?? "";

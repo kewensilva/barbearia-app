@@ -1,12 +1,20 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
 type FormaPagamento = "dinheiro" | "pix" | "cartao";
 type Servico = { id: string; nome: string; preco: number };
 
 export default function Lancamento() {
+  return (
+    <Suspense fallback={<main />}>
+      <LancamentoContent />
+    </Suspense>
+  );
+}
+
+function LancamentoContent() {
   const router = useRouter();
   const params = useSearchParams();
   const usuarioId = params.get("usuario") ?? "";

@@ -1,11 +1,19 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
 type Usuario = { id: string; nome: string; role: "admin" | "barber"; ativo: boolean };
 
 export default function Usuarios() {
+  return (
+    <Suspense fallback={<main />}>
+      <UsuariosContent />
+    </Suspense>
+  );
+}
+
+function UsuariosContent() {
   const router = useRouter();
   const params = useSearchParams();
   const usuarioId = params.get("usuario") ?? "";
