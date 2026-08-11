@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import InactivityGuard from "./components/InactivityGuard";
 
 export const metadata: Metadata = {
   title: "Fluxo de Caixa - Barbearia",
@@ -13,7 +14,10 @@ export default function RootLayout({
 }) {
   return (
     <html lang="pt-BR">
-      <body>{children}</body>
+      <body>
+        <InactivityGuard />
+        {children}
+      </body>
     </html>
   );
 }

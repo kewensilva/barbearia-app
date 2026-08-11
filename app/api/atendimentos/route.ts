@@ -8,17 +8,24 @@ export async function GET(request: Request) {
   const orgId = await getOrgId();
   const { searchParams } = new URL(request.url);
   const data = searchParams.get("data") ?? new Date().toISOString().slice(0, 10);
+  const barbeiro = searchParams.get("barbeiro");
 
   const inicio = new Date(`${data}T00:00:00.000Z`).toISOString();
   const fim = new Date(`${data}T23:59:59.999Z`).toISOString();
 
-  const { data: atendimentos, error } = await supabaseAdmin
+  let query = supabaseAdmin
     .from("transactions")
     .select("id, valor_cobrado, forma_pagamento, origem, criado_em, users(nome), services(nome)")
     .eq("org_id", orgId)
     .gte("criado_em", inicio)
     .lte("criado_em", fim)
     .order("criado_em", { ascending: false });
+
+  if (barbeiro) {
+    query = query.eq("barber_id", barbeiro);
+  }
+
+  const { data: atendimentos, error } = await query;
 
   if (error) {
     return NextResponse.json({ erro: error.message }, { status: 500 });

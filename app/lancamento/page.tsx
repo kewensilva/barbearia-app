@@ -5,6 +5,13 @@ import { useRouter, useSearchParams } from "next/navigation";
 
 type FormaPagamento = "dinheiro" | "pix" | "cartao";
 type Servico = { id: string; nome: string; preco: number };
+type Atendimento = {
+  id: string;
+  valor_cobrado: number;
+  forma_pagamento: FormaPagamento;
+  criado_em: string;
+  services: { nome: string } | null;
+};
 
 export default function Lancamento() {
   return (
@@ -28,6 +35,15 @@ function LancamentoContent() {
   const [salvando, setSalvando] = useState(false);
   const [salvo, setSalvo] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
+  const [meusAtendimentos, setMeusAtendimentos] = useState<Atendimento[]>([]);
+
+  function carregarMeusAtendimentos() {
+    if (!usuarioId) return;
+    fetch(`/api/atendimentos?barbeiro=${usuarioId}`)
+      .then((r) => r.json())
+      .then(setMeusAtendimentos)
+      .catch(() => {});
+  }
 
   useEffect(() => {
     fetch("/api/servicos")
@@ -42,7 +58,11 @@ function LancamentoContent() {
         setNomeUsuario(atual?.nome ?? "");
         setRoleUsuario(atual?.role ?? null);
       });
+
+    carregarMeusAtendimentos();
   }, [usuarioId]);
+
+  const totalHoje = meusAtendimentos.reduce((soma, a) => soma + a.valor_cobrado, 0);
 
   const podeConfirmar = servicoId && pagamento && !salvando;
 
@@ -58,6 +78,7 @@ function LancamentoContent() {
       });
       if (!res.ok) throw new Error();
       setSalvo(true);
+      carregarMeusAtendimentos();
       setTimeout(() => {
         setSalvo(false);
         setServicoId(null);
@@ -151,6 +172,34 @@ function LancamentoContent() {
       >
         {salvo ? "Lançado ✓" : salvando ? "Lançando..." : "Confirmar atendimento"}
       </button>
+
+      <p className="section-label">Meus atendimentos hoje</p>
+      <div className="card">
+        <div className="row">
+          <p className="subtitle" style={{ marginBottom: 0 }}>Total</p>
+          <div style={{ fontWeight: 700 }}>R$ {totalHoje.toFixed(2)}</div>
+        </div>
+      </div>
+      <div className="card">
+        {meusAtendimentos.length === 0 && (
+          <p className="subtitle">Nenhum atendimento hoje ainda</p>
+        )}
+        {meusAtendimentos.map((a) => (
+          <div key={a.id} className="tx-item">
+            <div>
+              <div>{a.services?.nome}</div>
+              <div className="subtitle" style={{ marginBottom: 0 }}>
+                {new Date(a.criado_em).toLocaleTimeString("pt-BR", {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })}{" "}
+                · {a.forma_pagamento}
+              </div>
+            </div>
+            <div>R$ {a.valor_cobrado.toFixed(2)}</div>
+          </div>
+        ))}
+      </div>
     </main>
   );
 }
