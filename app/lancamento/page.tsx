@@ -10,6 +10,7 @@ type Atendimento = {
   valor_cobrado: number;
   forma_pagamento: FormaPagamento;
   criado_em: string;
+  cliente_nome: string | null;
   services: { nome: string } | null;
 };
 
@@ -36,6 +37,8 @@ function LancamentoContent() {
   const [salvo, setSalvo] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
   const [meusAtendimentos, setMeusAtendimentos] = useState<Atendimento[]>([]);
+  const [mostrarNomeCliente, setMostrarNomeCliente] = useState(false);
+  const [clienteNome, setClienteNome] = useState("");
 
   function carregarMeusAtendimentos() {
     if (!usuarioId) return;
@@ -59,6 +62,11 @@ function LancamentoContent() {
         setRoleUsuario(atual?.role ?? null);
       });
 
+    fetch("/api/organizacao")
+      .then((r) => r.json())
+      .then((dados) => setMostrarNomeCliente(Boolean(dados.mostrarNomeCliente)))
+      .catch(() => {});
+
     carregarMeusAtendimentos();
   }, [usuarioId]);
 
@@ -74,7 +82,13 @@ function LancamentoContent() {
       const res = await fetch("/api/atendimentos", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ usuarioId, servicoId, formaPagamento: pagamento, origem }),
+        body: JSON.stringify({
+          usuarioId,
+          servicoId,
+          formaPagamento: pagamento,
+          origem,
+          clienteNome: mostrarNomeCliente ? clienteNome : undefined,
+        }),
       });
       if (!res.ok) throw new Error();
       setSalvo(true);
@@ -83,6 +97,7 @@ function LancamentoContent() {
         setSalvo(false);
         setServicoId(null);
         setPagamento(null);
+        setClienteNome("");
       }, 1200);
     } catch {
       setErro("Não foi possível lançar o atendimento, tente de novo");
@@ -165,6 +180,20 @@ function LancamentoContent() {
         </button>
       </div>
 
+      {mostrarNomeCliente && (
+        <>
+          <p className="subtitle" style={{ marginBottom: 8, marginTop: 20 }}>
+            Nome do cliente (opcional)
+          </p>
+          <input
+            className="input"
+            placeholder="Nome do cliente"
+            value={clienteNome}
+            onChange={(e) => setClienteNome(e.target.value)}
+          />
+        </>
+      )}
+
       <button
         className="primary-btn"
         disabled={!podeConfirmar}
@@ -187,7 +216,10 @@ function LancamentoContent() {
         {meusAtendimentos.map((a) => (
           <div key={a.id} className="tx-item">
             <div>
-              <div>{a.services?.nome}</div>
+              <div>
+                {a.services?.nome}
+                {a.cliente_nome ? ` · ${a.cliente_nome}` : ""}
+              </div>
               <div className="subtitle" style={{ marginBottom: 0 }}>
                 {new Date(a.criado_em).toLocaleTimeString("pt-BR", {
                   hour: "2-digit",

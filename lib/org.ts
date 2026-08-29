@@ -1,18 +1,18 @@
-import { supabaseAdmin } from "@/lib/supabaseAdmin";
+import { cookies } from "next/headers";
 
-// MVP de tenant único: cada deploy atende uma barbearia, então basta pegar
-// a única organization cadastrada. Onboarding multi-tenant real (Fase 4 do
-// roadmap) troca isto por resolução via domínio/subdomínio ou sessão de device.
+// Multi-tenant real: cada dispositivo/navegador fica vinculado a UMA
+// organization via cookie, definida no cadastro da barbearia ou ao entrar
+// com um código de acesso existente (ver /api/organizacoes).
+export const ORG_COOKIE = "org_id";
+
 export async function getOrgId(): Promise<string> {
-  const { data, error } = await supabaseAdmin
-    .from("organizations")
-    .select("id")
-    .limit(1)
-    .single();
-
-  if (error || !data) {
-    throw new Error("Nenhuma organization encontrada");
+  const orgId = cookies().get(ORG_COOKIE)?.value;
+  if (!orgId) {
+    throw new Error("Nenhuma organização vinculada a este dispositivo");
   }
+  return orgId;
+}
 
-  return data.id as string;
+export async function getOrgIdOrNull(): Promise<string | null> {
+  return cookies().get(ORG_COOKIE)?.value ?? null;
 }

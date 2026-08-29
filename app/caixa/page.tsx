@@ -8,6 +8,7 @@ type Atendimento = {
   valor_cobrado: number;
   forma_pagamento: "dinheiro" | "pix" | "cartao";
   criado_em: string;
+  cliente_nome: string | null;
   users: { nome: string } | null;
   services: { nome: string } | null;
 };
@@ -69,7 +70,10 @@ function CaixaContent() {
         {atendimentos.map((a) => (
           <div key={a.id} className="tx-item">
             <div>
-              <div>{a.services?.nome}</div>
+              <div>
+                {a.services?.nome}
+                {a.cliente_nome ? ` · ${a.cliente_nome}` : ""}
+              </div>
               <div className="subtitle" style={{ marginBottom: 0 }}>
                 {a.users?.nome} ·{" "}
                 {new Date(a.criado_em).toLocaleTimeString("pt-BR", {

@@ -15,7 +15,9 @@ export async function GET(request: Request) {
 
   let query = supabaseAdmin
     .from("transactions")
-    .select("id, valor_cobrado, forma_pagamento, origem, criado_em, users(nome), services(nome)")
+    .select(
+      "id, valor_cobrado, forma_pagamento, origem, cliente_nome, criado_em, users(nome), services(nome)"
+    )
     .eq("org_id", orgId)
     .gte("criado_em", inicio)
     .lte("criado_em", fim)
@@ -36,13 +38,14 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   const orgId = await getOrgId();
-  const { usuarioId, servicoId, formaPagamento, origem } = await request.json();
+  const { usuarioId, servicoId, formaPagamento, origem, clienteNome } = await request.json();
 
   if (
     typeof usuarioId !== "string" ||
     typeof servicoId !== "string" ||
     !["dinheiro", "pix", "cartao"].includes(formaPagamento) ||
-    !["agendado", "encaixe"].includes(origem)
+    !["agendado", "encaixe"].includes(origem) ||
+    (clienteNome !== undefined && typeof clienteNome !== "string")
   ) {
     return NextResponse.json({ erro: "Requisição inválida" }, { status: 400 });
   }
@@ -67,6 +70,7 @@ export async function POST(request: Request) {
       valor_cobrado: servico.preco,
       forma_pagamento: formaPagamento,
       origem,
+      cliente_nome: clienteNome?.trim() || null,
     })
     .select()
     .single();

@@ -23,23 +23,61 @@ export default function Configuracoes() {
   );
 }
 
+type OrganizacaoInfo = {
+  nome: string;
+  codigoAcesso: string | null;
+  mostrarNomeCliente: boolean;
+};
+
 function ConfiguracoesContent() {
   const router = useRouter();
   const params = useSearchParams();
   const usuarioId = params.get("usuario") ?? "";
   const [barbeiros, setBarbeiros] = useState<BarbeiroConfig[]>([]);
+  const [organizacao, setOrganizacao] = useState<OrganizacaoInfo | null>(null);
+  const [salvandoOrg, setSalvandoOrg] = useState(false);
   const [carregando, setCarregando] = useState(true);
   const [salvandoId, setSalvandoId] = useState<string | null>(null);
 
   function carregar() {
     setCarregando(true);
-    fetch("/api/barbeiros-config")
-      .then((r) => r.json())
-      .then(setBarbeiros)
+    Promise.all([
+      fetch("/api/barbeiros-config").then((r) => r.json()),
+      fetch("/api/organizacao").then((r) => r.json()),
+    ])
+      .then(([barbeirosData, orgData]) => {
+        setBarbeiros(barbeirosData);
+        if (orgData.vinculado) {
+          setOrganizacao({
+            nome: orgData.nome,
+            codigoAcesso: orgData.codigoAcesso,
+            mostrarNomeCliente: orgData.mostrarNomeCliente,
+          });
+        }
+      })
       .finally(() => setCarregando(false));
   }
 
   useEffect(carregar, []);
+
+  async function alternarMostrarNomeCliente() {
+    if (!organizacao) return;
+    setSalvandoOrg(true);
+    const res = await fetch("/api/organizacao", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ mostrarNomeCliente: !organizacao.mostrarNomeCliente }),
+    });
+    const dados = await res.json();
+    if (res.ok) {
+      setOrganizacao({
+        nome: dados.nome,
+        codigoAcesso: dados.codigoAcesso,
+        mostrarNomeCliente: dados.mostrarNomeCliente,
+      });
+    }
+    setSalvandoOrg(false);
+  }
 
   async function salvarComissao(barberId: string, tipo: TipoComissao, valor: number) {
     setSalvandoId(barberId);
@@ -80,6 +118,31 @@ function ConfiguracoesContent() {
         </button>
       </div>
       <p className="subtitle">Comissão e periodicidade de fechamento por barbeiro</p>
+
+      {organizacao && (
+        <div className="card">
+          <p className="section-label" style={{ marginTop: 0 }}>Código de acesso da barbearia</p>
+          <div style={{ fontSize: 22, fontWeight: 700, letterSpacing: 3, marginBottom: 12 }}>
+            {organizacao.codigoAcesso}
+          </div>
+          <p className="subtitle" style={{ marginBottom: 8 }}>
+            Use esse código pra vincular outro dispositivo (celular, tablet do balcão) a esta
+            barbearia, na tela inicial.
+          </p>
+
+          <p className="section-label">Lançamento de atendimento</p>
+          <button
+            className={`option-btn ${organizacao.mostrarNomeCliente ? "selected" : ""}`}
+            style={{ width: "100%" }}
+            disabled={salvandoOrg}
+            onClick={alternarMostrarNomeCliente}
+          >
+            {organizacao.mostrarNomeCliente
+              ? "Perguntando nome do cliente ✓"
+              : "Perguntar nome do cliente no lançamento"}
+          </button>
+        </div>
+      )}
 
       {carregando && <p className="subtitle">Carregando...</p>}
       {!carregando && barbeiros.length === 0 && (
