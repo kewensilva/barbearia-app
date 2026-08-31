@@ -49,6 +49,22 @@ export default function Home() {
 
   useEffect(verificarVinculo, []);
 
+  useEffect(() => {
+    if (!usuarioSelecionado) return;
+
+    function aoTeclar(e: KeyboardEvent) {
+      if (/^[0-9]$/.test(e.key)) {
+        digitar(e.key);
+      } else if (e.key === "Backspace") {
+        setPin((atual) => atual.slice(0, -1));
+      }
+    }
+
+    window.addEventListener("keydown", aoTeclar);
+    return () => window.removeEventListener("keydown", aoTeclar);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [usuarioSelecionado, pin, verificando]);
+
   async function digitar(numero: string) {
     if (pin.length >= 4 || verificando) return;
     const novoPin = pin + numero;
