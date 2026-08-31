@@ -43,11 +43,18 @@ export async function POST(request: Request) {
   if (
     typeof usuarioId !== "string" ||
     typeof servicoId !== "string" ||
-    !["dinheiro", "pix", "cartao"].includes(formaPagamento) ||
+    !["dinheiro", "pix", "cartao", "cortesia"].includes(formaPagamento) ||
     !["agendado", "encaixe"].includes(origem) ||
     (clienteNome !== undefined && typeof clienteNome !== "string")
   ) {
     return NextResponse.json({ erro: "Requisição inválida" }, { status: 400 });
+  }
+
+  if (formaPagamento === "cortesia" && !clienteNome?.trim()) {
+    return NextResponse.json(
+      { erro: "Informe o nome do cliente para registrar a cortesia" },
+      { status: 400 }
+    );
   }
 
   const { data: servico, error: servicoError } = await supabaseAdmin
@@ -67,7 +74,7 @@ export async function POST(request: Request) {
       org_id: orgId,
       barber_id: usuarioId,
       service_id: servicoId,
-      valor_cobrado: servico.preco,
+      valor_cobrado: formaPagamento === "cortesia" ? 0 : servico.preco,
       forma_pagamento: formaPagamento,
       origem,
       cliente_nome: clienteNome?.trim() || null,

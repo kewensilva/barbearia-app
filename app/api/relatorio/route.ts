@@ -21,7 +21,7 @@ export async function GET(request: Request) {
     await Promise.all([
       supabaseAdmin
         .from("transactions")
-        .select("valor_cobrado, barber_id, users(nome)")
+        .select("valor_cobrado, barber_id, forma_pagamento, cliente_nome, criado_em, users(nome), services(nome)")
         .eq("org_id", orgId)
         .gte("criado_em", inicioIso)
         .lte("criado_em", fimIso),
@@ -40,11 +40,14 @@ export async function GET(request: Request) {
     );
   }
 
-  const entradas = (transacoes ?? []).reduce((soma, t) => soma + t.valor_cobrado, 0);
+  const pagas = (transacoes ?? []).filter((t) => t.forma_pagamento !== "cortesia");
+  const cortesias = (transacoes ?? []).filter((t) => t.forma_pagamento === "cortesia");
+
+  const entradas = pagas.reduce((soma, t) => soma + t.valor_cobrado, 0);
   const saidas = (despesas ?? []).reduce((soma, d) => soma + d.valor, 0);
 
   const porBarbeiro = new Map<string, { nome: string; total: number; quantidade: number }>();
-  for (const t of transacoes ?? []) {
+  for (const t of pagas) {
     const nome = (t.users as unknown as { nome: string } | null)?.nome ?? "—";
     const atual = porBarbeiro.get(t.barber_id) ?? { nome, total: 0, quantidade: 0 };
     atual.total += t.valor_cobrado;
@@ -66,5 +69,13 @@ export async function GET(request: Request) {
       categoria,
       total,
     })),
+    cortesias: cortesias
+      .map((t) => ({
+        clienteNome: t.cliente_nome,
+        servicoNome: (t.services as unknown as { nome: string } | null)?.nome ?? null,
+        barbeiroNome: (t.users as unknown as { nome: string } | null)?.nome ?? null,
+        criadoEm: t.criado_em,
+      }))
+      .sort((a, b) => (a.criadoEm < b.criadoEm ? 1 : -1)),
   });
 }

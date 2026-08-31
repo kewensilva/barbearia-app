@@ -3,7 +3,7 @@
 import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
-type FormaPagamento = "dinheiro" | "pix" | "cartao";
+type FormaPagamento = "dinheiro" | "pix" | "cartao" | "cortesia";
 type Servico = { id: string; nome: string; preco: number };
 type Atendimento = {
   id: string;
@@ -72,7 +72,12 @@ function LancamentoContent() {
 
   const totalHoje = meusAtendimentos.reduce((soma, a) => soma + a.valor_cobrado, 0);
 
-  const podeConfirmar = servicoId && pagamento && !salvando;
+  const precisaNomeCliente = mostrarNomeCliente || pagamento === "cortesia";
+  const podeConfirmar =
+    servicoId &&
+    pagamento &&
+    !salvando &&
+    (pagamento !== "cortesia" || clienteNome.trim() !== "");
 
   async function confirmar() {
     if (!servicoId || !pagamento) return;
@@ -87,7 +92,7 @@ function LancamentoContent() {
           servicoId,
           formaPagamento: pagamento,
           origem,
-          clienteNome: mostrarNomeCliente ? clienteNome : undefined,
+          clienteNome: precisaNomeCliente ? clienteNome : undefined,
         }),
       });
       if (!res.ok) throw new Error();
@@ -150,17 +155,23 @@ function LancamentoContent() {
       <p className="subtitle" style={{ marginBottom: 8, marginTop: 20 }}>
         Forma de pagamento
       </p>
-      <div className="row" style={{ gap: 8 }}>
-        {(["dinheiro", "pix", "cartao"] as FormaPagamento[]).map((f) => (
+      <div className="row" style={{ gap: 8, flexWrap: "wrap" }}>
+        {(["dinheiro", "pix", "cartao", "cortesia"] as FormaPagamento[]).map((f) => (
           <button
             key={f}
             className={`pay-btn ${pagamento === f ? "selected" : ""}`}
+            style={{ flex: "1 1 40%" }}
             onClick={() => setPagamento(f)}
           >
             {f}
           </button>
         ))}
       </div>
+      {pagamento === "cortesia" && (
+        <p className="subtitle" style={{ marginTop: 8, marginBottom: 0 }}>
+          Cortesia: o serviço é dado de graça, não entra no valor arrecadado.
+        </p>
+      )}
 
       <p className="subtitle" style={{ marginBottom: 8, marginTop: 20 }}>
         Origem
@@ -180,10 +191,10 @@ function LancamentoContent() {
         </button>
       </div>
 
-      {mostrarNomeCliente && (
+      {precisaNomeCliente && (
         <>
           <p className="subtitle" style={{ marginBottom: 8, marginTop: 20 }}>
-            Nome do cliente (opcional)
+            {pagamento === "cortesia" ? "Nome do cliente (obrigatório)" : "Nome do cliente (opcional)"}
           </p>
           <input
             className="input"

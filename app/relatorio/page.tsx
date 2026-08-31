@@ -11,6 +11,12 @@ type Relatorio = {
   saldo: number;
   comparativoBarbeiros: { nome: string; total: number; quantidade: number }[];
   despesasPorCategoria: { categoria: string; total: number }[];
+  cortesias: {
+    clienteNome: string | null;
+    servicoNome: string | null;
+    barbeiroNome: string | null;
+    criadoEm: string;
+  }[];
 };
 
 function formatarData(d: Date) {
@@ -164,6 +170,29 @@ function RelatorioContent() {
               <div key={c.categoria} className="tx-item">
                 <div>{c.categoria}</div>
                 <div>R$ {c.total.toFixed(2)}</div>
+              </div>
+            ))}
+          </div>
+
+          <p className="section-label">Cortesias do período</p>
+          <div className="card">
+            {relatorio.cortesias.length === 0 && (
+              <p className="subtitle">Nenhuma cortesia no período</p>
+            )}
+            {relatorio.cortesias.map((c, i) => (
+              <div key={i} className="tx-item">
+                <div>
+                  <div>{c.clienteNome ?? "—"}</div>
+                  <div className="subtitle" style={{ marginBottom: 0 }}>
+                    {c.servicoNome} · {c.barbeiroNome} ·{" "}
+                    {new Date(c.criadoEm).toLocaleString("pt-BR", {
+                      day: "2-digit",
+                      month: "2-digit",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
+                  </div>
+                </div>
               </div>
             ))}
           </div>
