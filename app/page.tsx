@@ -20,19 +20,29 @@ export default function Home() {
   const [pin, setPin] = useState("");
   const [erro, setErro] = useState<string | null>(null);
   const [verificando, setVerificando] = useState(false);
+  const [lembrarNesteAparelho, setLembrarNesteAparelho] = useState(false);
+  const [redirecionandoDispositivo, setRedirecionandoDispositivo] = useState(false);
 
   function verificarVinculo() {
     setCarregando(true);
     fetch("/api/organizacao")
       .then((r) => r.json())
-      .then((dados) => {
+      .then(async (dados) => {
         setVinculado(dados.vinculado);
         setNomeBarbearia(dados.nome ?? "");
-        if (dados.vinculado) {
-          return fetch("/api/usuarios")
-            .then((r) => r.json())
-            .then(setUsuarios);
+        if (!dados.vinculado) return;
+
+        const dispositivo = await fetch("/api/dispositivo").then((r) => r.json());
+        if (dispositivo.usuarioFixo) {
+          setRedirecionandoDispositivo(true);
+          const destino = dispositivo.usuarioFixo.role === "admin" ? "/caixa" : "/lancamento";
+          router.replace(`${destino}?usuario=${dispositivo.usuarioFixo.id}`);
+          return;
         }
+
+        return fetch("/api/usuarios")
+          .then((r) => r.json())
+          .then(setUsuarios);
       })
       .finally(() => setCarregando(false));
   }
@@ -63,6 +73,13 @@ export default function Home() {
           setErro(`Bloqueado até ${ate}`);
           setPin("");
         } else if (dados.ok) {
+          if (lembrarNesteAparelho) {
+            await fetch("/api/dispositivo", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ usuarioId: usuarioSelecionado.id, pin: novoPin }),
+            }).catch(() => {});
+          }
           const destino = dados.usuario.role === "admin" ? "/caixa" : "/lancamento";
           router.push(`${destino}?usuario=${dados.usuario.id}`);
           return;
@@ -79,7 +96,7 @@ export default function Home() {
     }
   }
 
-  if (carregando) {
+  if (carregando || redirecionandoDispositivo) {
     return <main />;
   }
 
@@ -115,6 +132,16 @@ export default function Home() {
           <div key={i} className={`pin-dot ${i < pin.length ? "filled" : ""}`} />
         ))}
       </div>
+
+      <button
+        className={`option-btn ${lembrarNesteAparelho ? "selected" : ""}`}
+        style={{ width: "100%", marginBottom: 20 }}
+        onClick={() => setLembrarNesteAparelho(!lembrarNesteAparelho)}
+      >
+        {lembrarNesteAparelho
+          ? "📱 Vou lembrar este usuário aqui ✓"
+          : "📱 É meu celular pessoal? Lembrar aqui"}
+      </button>
 
       <div className="keypad">
         {["1", "2", "3", "4", "5", "6", "7", "8", "9"].map((n) => (

@@ -27,6 +27,7 @@ type OrganizacaoInfo = {
   nome: string;
   codigoAcesso: string | null;
   mostrarNomeCliente: boolean;
+  pinAreasSensiveis: boolean;
 };
 
 function ConfiguracoesContent() {
@@ -52,6 +53,7 @@ function ConfiguracoesContent() {
             nome: orgData.nome,
             codigoAcesso: orgData.codigoAcesso,
             mostrarNomeCliente: orgData.mostrarNomeCliente,
+            pinAreasSensiveis: orgData.pinAreasSensiveis,
           });
         }
       })
@@ -60,13 +62,13 @@ function ConfiguracoesContent() {
 
   useEffect(carregar, []);
 
-  async function alternarMostrarNomeCliente() {
+  async function atualizarOrganizacao(patch: { mostrarNomeCliente?: boolean; pinAreasSensiveis?: boolean }) {
     if (!organizacao) return;
     setSalvandoOrg(true);
     const res = await fetch("/api/organizacao", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ mostrarNomeCliente: !organizacao.mostrarNomeCliente }),
+      body: JSON.stringify(patch),
     });
     const dados = await res.json();
     if (res.ok) {
@@ -74,6 +76,7 @@ function ConfiguracoesContent() {
         nome: dados.nome,
         codigoAcesso: dados.codigoAcesso,
         mostrarNomeCliente: dados.mostrarNomeCliente,
+        pinAreasSensiveis: dados.pinAreasSensiveis,
       });
     }
     setSalvandoOrg(false);
@@ -135,12 +138,30 @@ function ConfiguracoesContent() {
             className={`option-btn ${organizacao.mostrarNomeCliente ? "selected" : ""}`}
             style={{ width: "100%" }}
             disabled={salvandoOrg}
-            onClick={alternarMostrarNomeCliente}
+            onClick={() => atualizarOrganizacao({ mostrarNomeCliente: !organizacao.mostrarNomeCliente })}
           >
             {organizacao.mostrarNomeCliente
               ? "Perguntando nome do cliente ✓"
               : "Perguntar nome do cliente no lançamento"}
           </button>
+
+          <p className="section-label">Segurança</p>
+          <button
+            className={`option-btn ${organizacao.pinAreasSensiveis ? "selected" : ""}`}
+            style={{ width: "100%" }}
+            disabled={salvandoOrg}
+            onClick={() =>
+              atualizarOrganizacao({ pinAreasSensiveis: !organizacao.pinAreasSensiveis })
+            }
+          >
+            {organizacao.pinAreasSensiveis
+              ? "Exigindo PIN em áreas administrativas ✓"
+              : "Exigir PIN em áreas administrativas"}
+          </button>
+          <p className="subtitle" style={{ marginTop: 8, marginBottom: 0 }}>
+            Vale pra relatório, configurações, fechar caixa, despesas, usuários e serviços.
+            Desligar remove a confirmação de PIN extra ao entrar nessas telas.
+          </p>
         </div>
       )}
 

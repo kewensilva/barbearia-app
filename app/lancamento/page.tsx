@@ -131,7 +131,16 @@ function LancamentoContent() {
           <button
             className="tag"
             style={{ border: "none", cursor: "pointer" }}
-            onClick={() => router.push("/")}
+            onClick={() => router.push(`/metricas?usuario=${usuarioId}`)}
+          >
+            métricas
+          </button>
+          <button
+            className="tag"
+            style={{ border: "none", cursor: "pointer" }}
+            onClick={() => {
+              fetch("/api/dispositivo", { method: "DELETE" }).finally(() => router.push("/"));
+            }}
           >
             trocar usuário
           </button>

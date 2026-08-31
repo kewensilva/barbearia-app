@@ -28,6 +28,7 @@ function CaixaContent() {
   const [atendimentos, setAtendimentos] = useState<Atendimento[]>([]);
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
+  const [pinAreasSensiveis, setPinAreasSensiveis] = useState(true);
 
   useEffect(() => {
     fetch("/api/atendimentos")
@@ -35,9 +36,22 @@ function CaixaContent() {
       .then(setAtendimentos)
       .catch(() => setErro("Não foi possível carregar o caixa"))
       .finally(() => setCarregando(false));
+
+    fetch("/api/organizacao")
+      .then((r) => r.json())
+      .then((dados) => setPinAreasSensiveis(dados.pinAreasSensiveis ?? true))
+      .catch(() => {});
   }, []);
 
   const total = atendimentos.reduce((soma, a) => soma + a.valor_cobrado, 0);
+
+  function irPara(destino: string) {
+    router.push(
+      pinAreasSensiveis
+        ? `/confirmar-pin?usuario=${usuarioId}&destino=${destino}`
+        : `${destino}?usuario=${usuarioId}`
+    );
+  }
 
   return (
     <main>
@@ -49,7 +63,9 @@ function CaixaContent() {
         <button
           className="tag"
           style={{ border: "none", cursor: "pointer" }}
-          onClick={() => router.push("/")}
+          onClick={() => {
+            fetch("/api/dispositivo", { method: "DELETE" }).finally(() => router.push("/"));
+          }}
         >
           trocar usuário
         </button>
@@ -94,56 +110,41 @@ function CaixaContent() {
       >
         Novo atendimento
       </button>
-      <button
-        className="primary-btn"
-        onClick={() =>
-          router.push(`/confirmar-pin?usuario=${usuarioId}&destino=/fechamentos`)
-        }
-      >
+      <button className="primary-btn" onClick={() => irPara("/fechamentos")}>
         Fechar caixa
       </button>
       <button
         className="primary-btn"
         style={{ background: "#78716c" }}
-        onClick={() =>
-          router.push(`/confirmar-pin?usuario=${usuarioId}&destino=/despesas`)
-        }
+        onClick={() => irPara("/despesas")}
       >
         Lançar despesa
       </button>
       <button
         className="primary-btn"
         style={{ background: "#57534e" }}
-        onClick={() =>
-          router.push(`/confirmar-pin?usuario=${usuarioId}&destino=/relatorio`)
-        }
+        onClick={() => irPara("/relatorio")}
       >
         Relatório
       </button>
       <button
         className="primary-btn"
         style={{ background: "#a8a29e" }}
-        onClick={() =>
-          router.push(`/confirmar-pin?usuario=${usuarioId}&destino=/configuracoes`)
-        }
+        onClick={() => irPara("/configuracoes")}
       >
         Configurações
       </button>
       <button
         className="primary-btn"
         style={{ background: "#a8a29e" }}
-        onClick={() =>
-          router.push(`/confirmar-pin?usuario=${usuarioId}&destino=/usuarios`)
-        }
+        onClick={() => irPara("/usuarios")}
       >
         Usuários
       </button>
       <button
         className="primary-btn"
         style={{ background: "#a8a29e" }}
-        onClick={() =>
-          router.push(`/confirmar-pin?usuario=${usuarioId}&destino=/servicos`)
-        }
+        onClick={() => irPara("/servicos")}
       >
         Serviços
       </button>
