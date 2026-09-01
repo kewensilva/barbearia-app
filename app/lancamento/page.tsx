@@ -115,7 +115,10 @@ function LancamentoContent() {
           clienteNome: precisaNomeCliente ? clienteNome : undefined,
         }),
       });
-      if (!res.ok) throw new Error();
+      if (!res.ok) {
+        const dados = await res.json().catch(() => null);
+        throw new Error(dados?.erro);
+      }
       setSalvo(true);
       carregarAtendimentosDe(atendenteEfetivoId);
       setTimeout(() => {
@@ -124,8 +127,8 @@ function LancamentoContent() {
         setPagamento(null);
         setClienteNome("");
       }, 1200);
-    } catch {
-      setErro("Não foi possível lançar o atendimento, tente de novo");
+    } catch (err) {
+      setErro(err instanceof Error && err.message ? err.message : "Não foi possível lançar o atendimento, tente de novo");
     } finally {
       setSalvando(false);
     }

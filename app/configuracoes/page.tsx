@@ -174,11 +174,14 @@ function ConfiguracoesContent() {
           </p>
 
           {organizacao.somenteAdminLanca && (
-            <PinOperacional
-              configurado={organizacao.pinOperacionalConfigurado}
-              salvando={salvandoOrg}
-              onSalvar={(pin) => atualizarOrganizacao({ pinOperacional: pin })}
-            />
+            <>
+              <PinOperacional
+                configurado={organizacao.pinOperacionalConfigurado}
+                salvando={salvandoOrg}
+                onSalvar={(pin) => atualizarOrganizacao({ pinOperacional: pin })}
+              />
+              <DispositivosAutorizados />
+            </>
           )}
 
           <p className="section-label">Segurança</p>
@@ -270,6 +273,115 @@ function PinOperacional({
       <button className="small-btn" disabled={!podeSalvar || salvando} onClick={salvar}>
         {salvo ? "Salvo ✓" : salvando ? "Salvando..." : "Salvar PIN operacional"}
       </button>
+    </div>
+  );
+}
+
+type Dispositivo = { id: string; device_id: string; nome: string | null; criado_em: string };
+
+function DispositivosAutorizados() {
+  const [deviceId, setDeviceId] = useState<string | null>(null);
+  const [autorizado, setAutorizado] = useState(false);
+  const [dispositivos, setDispositivos] = useState<Dispositivo[]>([]);
+  const [carregando, setCarregando] = useState(true);
+  const [nomeNovo, setNomeNovo] = useState("");
+  const [processando, setProcessando] = useState<string | null>(null);
+
+  function carregar() {
+    setCarregando(true);
+    fetch("/api/dispositivos-autorizados")
+      .then((r) => r.json())
+      .then((dados) => {
+        setDeviceId(dados.deviceId);
+        setAutorizado(dados.autorizado);
+        setDispositivos(dados.dispositivos ?? []);
+      })
+      .finally(() => setCarregando(false));
+  }
+
+  useEffect(carregar, []);
+
+  async function autorizarEsteDispositivo() {
+    if (nomeNovo.trim() === "") return;
+    setProcessando("novo");
+    await fetch("/api/dispositivos-autorizados", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ nome: nomeNovo }),
+    });
+    setNomeNovo("");
+    carregar();
+    setProcessando(null);
+  }
+
+  async function remover(id: string) {
+    setProcessando(id);
+    await fetch(`/api/dispositivos-autorizados/${id}`, { method: "DELETE" });
+    carregar();
+    setProcessando(null);
+  }
+
+  return (
+    <div style={{ marginTop: 16 }}>
+      <p className="section-label" style={{ marginTop: 0 }}>Dispositivos autorizados a lançar</p>
+      <p className="subtitle" style={{ marginBottom: 8 }}>
+        Com "somente admin lança" ligado, o lançamento só funciona nos dispositivos autorizados
+        aqui — mesmo com o PIN certo, um aparelho não autorizado é bloqueado.
+      </p>
+
+      {carregando && <p className="subtitle">Carregando...</p>}
+
+      {!carregando && !autorizado && deviceId && (
+        <div className="card">
+          <p className="subtitle" style={{ marginBottom: 8 }}>
+            Este dispositivo ainda não está autorizado.
+          </p>
+          <input
+            className="input"
+            placeholder="Apelido (ex: Tablet do balcão)"
+            value={nomeNovo}
+            onChange={(e) => setNomeNovo(e.target.value)}
+          />
+          <button
+            className="small-btn"
+            disabled={nomeNovo.trim() === "" || processando === "novo"}
+            onClick={autorizarEsteDispositivo}
+          >
+            {processando === "novo" ? "Autorizando..." : "Autorizar este dispositivo"}
+          </button>
+        </div>
+      )}
+
+      {!carregando && dispositivos.length === 0 && (
+        <p className="subtitle" style={{ color: "#dc2626" }}>
+          Nenhum dispositivo autorizado ainda — o lançamento vai ficar bloqueado em todo lugar
+          até autorizar pelo menos um.
+        </p>
+      )}
+
+      {dispositivos.map((d) => (
+        <div key={d.id} className="card" style={{ padding: 12 }}>
+          <div className="row">
+            <div>
+              <div>
+                {d.nome ?? "Sem apelido"}
+                {d.device_id === deviceId ? " (este dispositivo)" : ""}
+              </div>
+              <div className="subtitle" style={{ marginBottom: 0 }}>
+                autorizado em {new Date(d.criado_em).toLocaleDateString("pt-BR")}
+              </div>
+            </div>
+            <button
+              className="small-btn"
+              style={{ width: "auto", marginTop: 0, background: "#dc2626" }}
+              disabled={processando === d.id}
+              onClick={() => remover(d.id)}
+            >
+              Remover
+            </button>
+          </div>
+        </div>
+      ))}
     </div>
   );
 }

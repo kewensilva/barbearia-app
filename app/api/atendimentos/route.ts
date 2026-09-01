@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
-import { getOrgId } from "@/lib/org";
+import { getOrgId, getDeviceIdOrNull } from "@/lib/org";
 
 export const dynamic = "force-dynamic";
 
@@ -55,6 +55,31 @@ export async function POST(request: Request) {
       { erro: "Informe o nome do cliente para registrar a cortesia" },
       { status: 400 }
     );
+  }
+
+  const { data: org } = await supabaseAdmin
+    .from("organizations")
+    .select("somente_admin_lanca")
+    .eq("id", orgId)
+    .single();
+
+  if (org?.somente_admin_lanca) {
+    const deviceId = await getDeviceIdOrNull();
+    const { data: autorizado } = deviceId
+      ? await supabaseAdmin
+          .from("authorized_devices")
+          .select("id")
+          .eq("org_id", orgId)
+          .eq("device_id", deviceId)
+          .maybeSingle()
+      : { data: null };
+
+    if (!autorizado) {
+      return NextResponse.json(
+        { erro: "Este dispositivo não está autorizado a lançar atendimentos" },
+        { status: 403 }
+      );
+    }
   }
 
   const { data: servico, error: servicoError } = await supabaseAdmin

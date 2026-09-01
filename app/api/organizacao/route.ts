@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
-import { getOrgIdOrNull, getOrgId } from "@/lib/org";
+import { getOrgIdOrNull, getOrgId, getDeviceIdOrNull, DEVICE_ID_COOKIE } from "@/lib/org";
 
 export const dynamic = "force-dynamic";
 
@@ -31,9 +31,23 @@ function serializar(org: {
 
 export async function GET() {
   const orgId = await getOrgIdOrNull();
+  const deviceIdExistente = await getDeviceIdOrNull();
+  const novoDeviceId = deviceIdExistente ? null : crypto.randomUUID();
+
+  function comCookieDeDispositivo(response: NextResponse) {
+    if (novoDeviceId) {
+      response.cookies.set(DEVICE_ID_COOKIE, novoDeviceId, {
+        httpOnly: true,
+        sameSite: "lax",
+        maxAge: 60 * 60 * 24 * 365 * 5,
+        path: "/",
+      });
+    }
+    return response;
+  }
 
   if (!orgId) {
-    return NextResponse.json({ vinculado: false });
+    return comCookieDeDispositivo(NextResponse.json({ vinculado: false }));
   }
 
   const { data: org, error } = await supabaseAdmin
@@ -43,10 +57,10 @@ export async function GET() {
     .maybeSingle();
 
   if (error || !org) {
-    return NextResponse.json({ vinculado: false });
+    return comCookieDeDispositivo(NextResponse.json({ vinculado: false }));
   }
 
-  return NextResponse.json(serializar(org));
+  return comCookieDeDispositivo(NextResponse.json(serializar(org)));
 }
 
 export async function PATCH(request: Request) {
