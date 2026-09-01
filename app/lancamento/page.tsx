@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 
 type FormaPagamento = "dinheiro" | "pix" | "cartao" | "cortesia";
 type Servico = { id: string; nome: string; preco: number };
+type Usuario = { id: string; nome: string; role: "admin" | "barber" };
 type Atendimento = {
   id: string;
   valor_cobrado: number;
@@ -29,6 +30,7 @@ function LancamentoContent() {
 
   const [nomeUsuario, setNomeUsuario] = useState("");
   const [roleUsuario, setRoleUsuario] = useState<"admin" | "barber" | null>(null);
+  const [usuarios, setUsuarios] = useState<Usuario[]>([]);
   const [servicos, setServicos] = useState<Servico[]>([]);
   const [servicoId, setServicoId] = useState<string | null>(null);
   const [pagamento, setPagamento] = useState<FormaPagamento | null>(null);
@@ -39,10 +41,19 @@ function LancamentoContent() {
   const [meusAtendimentos, setMeusAtendimentos] = useState<Atendimento[]>([]);
   const [mostrarNomeCliente, setMostrarNomeCliente] = useState(false);
   const [clienteNome, setClienteNome] = useState("");
+  const [somenteAdminLanca, setSomenteAdminLanca] = useState(false);
+  const [atendenteId, setAtendenteId] = useState<string | null>(null);
 
-  function carregarMeusAtendimentos() {
-    if (!usuarioId) return;
-    fetch(`/api/atendimentos?barbeiro=${usuarioId}`)
+  const precisaEscolherAtendente = somenteAdminLanca && roleUsuario === "admin";
+  const bloqueadoParaBarbeiro = somenteAdminLanca && roleUsuario === "barber";
+  const atendenteEfetivoId = precisaEscolherAtendente ? atendenteId : usuarioId;
+
+  function carregarAtendimentosDe(id: string | null) {
+    if (!id) {
+      setMeusAtendimentos([]);
+      return;
+    }
+    fetch(`/api/atendimentos?barbeiro=${id}`)
       .then((r) => r.json())
       .then(setMeusAtendimentos)
       .catch(() => {});
@@ -56,31 +67,39 @@ function LancamentoContent() {
 
     fetch("/api/usuarios")
       .then((r) => r.json())
-      .then((usuarios: { id: string; nome: string; role: "admin" | "barber" }[]) => {
-        const atual = usuarios.find((u) => u.id === usuarioId);
+      .then((dados: Usuario[]) => {
+        setUsuarios(dados);
+        const atual = dados.find((u) => u.id === usuarioId);
         setNomeUsuario(atual?.nome ?? "");
         setRoleUsuario(atual?.role ?? null);
       });
 
     fetch("/api/organizacao")
       .then((r) => r.json())
-      .then((dados) => setMostrarNomeCliente(Boolean(dados.mostrarNomeCliente)))
+      .then((dados) => {
+        setMostrarNomeCliente(Boolean(dados.mostrarNomeCliente));
+        setSomenteAdminLanca(Boolean(dados.somenteAdminLanca));
+      })
       .catch(() => {});
-
-    carregarMeusAtendimentos();
   }, [usuarioId]);
+
+  useEffect(() => {
+    carregarAtendimentosDe(atendenteEfetivoId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [atendenteEfetivoId]);
 
   const totalHoje = meusAtendimentos.reduce((soma, a) => soma + a.valor_cobrado, 0);
 
   const precisaNomeCliente = mostrarNomeCliente || pagamento === "cortesia";
   const podeConfirmar =
+    Boolean(atendenteEfetivoId) &&
     servicoId &&
     pagamento &&
     !salvando &&
     (pagamento !== "cortesia" || clienteNome.trim() !== "");
 
   async function confirmar() {
-    if (!servicoId || !pagamento) return;
+    if (!servicoId || !pagamento || !atendenteEfetivoId) return;
     setSalvando(true);
     setErro(null);
     try {
@@ -88,7 +107,7 @@ function LancamentoContent() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          usuarioId,
+          usuarioId: atendenteEfetivoId,
           servicoId,
           formaPagamento: pagamento,
           origem,
@@ -97,7 +116,7 @@ function LancamentoContent() {
       });
       if (!res.ok) throw new Error();
       setSalvo(true);
-      carregarMeusAtendimentos();
+      carregarAtendimentosDe(atendenteEfetivoId);
       setTimeout(() => {
         setSalvo(false);
         setServicoId(null);
@@ -110,6 +129,9 @@ function LancamentoContent() {
       setSalvando(false);
     }
   }
+
+  const atendentes = usuarios;
+  const nomeAtendenteSelecionado = usuarios.find((u) => u.id === atendenteId)?.nome;
 
   return (
     <main>
@@ -149,80 +171,107 @@ function LancamentoContent() {
 
       {erro && <p className="subtitle" style={{ color: "#dc2626" }}>{erro}</p>}
 
-      <p className="subtitle" style={{ marginBottom: 8 }}>Serviço</p>
-      {servicos.map((s) => (
-        <button
-          key={s.id}
-          className={`service-btn ${servicoId === s.id ? "selected" : ""}`}
-          onClick={() => setServicoId(s.id)}
-        >
-          <span>{s.nome}</span>
-          <span>R$ {s.preco.toFixed(2)}</span>
-        </button>
-      ))}
-
-      <p className="subtitle" style={{ marginBottom: 8, marginTop: 20 }}>
-        Forma de pagamento
-      </p>
-      <div className="row" style={{ gap: 8, flexWrap: "wrap" }}>
-        {(["dinheiro", "pix", "cartao", "cortesia"] as FormaPagamento[]).map((f) => (
-          <button
-            key={f}
-            className={`pay-btn ${pagamento === f ? "selected" : ""}`}
-            style={{ flex: "1 1 40%" }}
-            onClick={() => setPagamento(f)}
-          >
-            {f}
-          </button>
-        ))}
-      </div>
-      {pagamento === "cortesia" && (
-        <p className="subtitle" style={{ marginTop: 8, marginBottom: 0 }}>
-          Cortesia: o serviço é dado de graça, não entra no valor arrecadado.
-        </p>
-      )}
-
-      <p className="subtitle" style={{ marginBottom: 8, marginTop: 20 }}>
-        Origem
-      </p>
-      <div className="row" style={{ gap: 8 }}>
-        <button
-          className={`pay-btn ${origem === "agendado" ? "selected" : ""}`}
-          onClick={() => setOrigem("agendado")}
-        >
-          agendado
-        </button>
-        <button
-          className={`pay-btn ${origem === "encaixe" ? "selected" : ""}`}
-          onClick={() => setOrigem("encaixe")}
-        >
-          encaixe
-        </button>
-      </div>
-
-      {precisaNomeCliente && (
-        <>
-          <p className="subtitle" style={{ marginBottom: 8, marginTop: 20 }}>
-            {pagamento === "cortesia" ? "Nome do cliente (obrigatório)" : "Nome do cliente (opcional)"}
+      {bloqueadoParaBarbeiro ? (
+        <div className="card">
+          <p style={{ marginBottom: 0 }}>
+            Nesta barbearia, os atendimentos são lançados pelo admin. Avise o dono pra registrar
+            o seu atendimento.
           </p>
-          <input
-            className="input"
-            placeholder="Nome do cliente"
-            value={clienteNome}
-            onChange={(e) => setClienteNome(e.target.value)}
-          />
+        </div>
+      ) : (
+        <>
+          {precisaEscolherAtendente && (
+            <>
+              <p className="subtitle" style={{ marginBottom: 8 }}>Atendente</p>
+              {atendentes.map((a) => (
+                <button
+                  key={a.id}
+                  className={`service-btn ${atendenteId === a.id ? "selected" : ""}`}
+                  onClick={() => setAtendenteId(a.id)}
+                >
+                  <span>{a.nome}</span>
+                  <span></span>
+                </button>
+              ))}
+            </>
+          )}
+
+          <p className="subtitle" style={{ marginBottom: 8, marginTop: 20 }}>Serviço</p>
+          {servicos.map((s) => (
+            <button
+              key={s.id}
+              className={`service-btn ${servicoId === s.id ? "selected" : ""}`}
+              onClick={() => setServicoId(s.id)}
+            >
+              <span>{s.nome}</span>
+              <span>R$ {s.preco.toFixed(2)}</span>
+            </button>
+          ))}
+
+          <p className="subtitle" style={{ marginBottom: 8, marginTop: 20 }}>
+            Forma de pagamento
+          </p>
+          <div className="row" style={{ gap: 8, flexWrap: "wrap" }}>
+            {(["dinheiro", "pix", "cartao", "cortesia"] as FormaPagamento[]).map((f) => (
+              <button
+                key={f}
+                className={`pay-btn ${pagamento === f ? "selected" : ""}`}
+                style={{ flex: "1 1 40%" }}
+                onClick={() => setPagamento(f)}
+              >
+                {f}
+              </button>
+            ))}
+          </div>
+          {pagamento === "cortesia" && (
+            <p className="subtitle" style={{ marginTop: 8, marginBottom: 0 }}>
+              Cortesia: o serviço é dado de graça, não entra no valor arrecadado.
+            </p>
+          )}
+
+          <p className="subtitle" style={{ marginBottom: 8, marginTop: 20 }}>
+            Origem
+          </p>
+          <div className="row" style={{ gap: 8 }}>
+            <button
+              className={`pay-btn ${origem === "agendado" ? "selected" : ""}`}
+              onClick={() => setOrigem("agendado")}
+            >
+              agendado
+            </button>
+            <button
+              className={`pay-btn ${origem === "encaixe" ? "selected" : ""}`}
+              onClick={() => setOrigem("encaixe")}
+            >
+              encaixe
+            </button>
+          </div>
+
+          {precisaNomeCliente && (
+            <>
+              <p className="subtitle" style={{ marginBottom: 8, marginTop: 20 }}>
+                {pagamento === "cortesia" ? "Nome do cliente (obrigatório)" : "Nome do cliente (opcional)"}
+              </p>
+              <input
+                className="input"
+                placeholder="Nome do cliente"
+                value={clienteNome}
+                onChange={(e) => setClienteNome(e.target.value)}
+              />
+            </>
+          )}
+
+          <button className="primary-btn" disabled={!podeConfirmar} onClick={confirmar}>
+            {salvo ? "Lançado ✓" : salvando ? "Lançando..." : "Confirmar atendimento"}
+          </button>
         </>
       )}
 
-      <button
-        className="primary-btn"
-        disabled={!podeConfirmar}
-        onClick={confirmar}
-      >
-        {salvo ? "Lançado ✓" : salvando ? "Lançando..." : "Confirmar atendimento"}
-      </button>
-
-      <p className="section-label">Meus atendimentos hoje</p>
+      <p className="section-label">
+        {precisaEscolherAtendente
+          ? `Atendimentos de ${nomeAtendenteSelecionado ?? "—"} hoje`
+          : "Meus atendimentos hoje"}
+      </p>
       <div className="card">
         <div className="row">
           <p className="subtitle" style={{ marginBottom: 0 }}>Total</p>

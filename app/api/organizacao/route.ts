@@ -4,7 +4,8 @@ import { getOrgIdOrNull, getOrgId } from "@/lib/org";
 
 export const dynamic = "force-dynamic";
 
-const CAMPOS = "id, nome, codigo_acesso, mostrar_nome_cliente, pin_areas_sensiveis";
+const CAMPOS =
+  "id, nome, codigo_acesso, mostrar_nome_cliente, pin_areas_sensiveis, somente_admin_lanca";
 
 function serializar(org: {
   id: string;
@@ -12,6 +13,7 @@ function serializar(org: {
   codigo_acesso: string | null;
   mostrar_nome_cliente: boolean;
   pin_areas_sensiveis: boolean;
+  somente_admin_lanca: boolean;
 }) {
   return {
     vinculado: true,
@@ -20,6 +22,7 @@ function serializar(org: {
     codigoAcesso: org.codigo_acesso,
     mostrarNomeCliente: org.mostrar_nome_cliente,
     pinAreasSensiveis: org.pin_areas_sensiveis,
+    somenteAdminLanca: org.somente_admin_lanca,
   };
 }
 
@@ -45,11 +48,12 @@ export async function GET() {
 
 export async function PATCH(request: Request) {
   const orgId = await getOrgId();
-  const { mostrarNomeCliente, pinAreasSensiveis } = await request.json();
+  const { mostrarNomeCliente, pinAreasSensiveis, somenteAdminLanca } = await request.json();
 
   const patch: Record<string, boolean> = {};
   if (typeof mostrarNomeCliente === "boolean") patch.mostrar_nome_cliente = mostrarNomeCliente;
   if (typeof pinAreasSensiveis === "boolean") patch.pin_areas_sensiveis = pinAreasSensiveis;
+  if (typeof somenteAdminLanca === "boolean") patch.somente_admin_lanca = somenteAdminLanca;
 
   if (Object.keys(patch).length === 0) {
     return NextResponse.json({ erro: "Nada para atualizar" }, { status: 400 });

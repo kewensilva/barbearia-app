@@ -28,6 +28,7 @@ type OrganizacaoInfo = {
   codigoAcesso: string | null;
   mostrarNomeCliente: boolean;
   pinAreasSensiveis: boolean;
+  somenteAdminLanca: boolean;
 };
 
 function ConfiguracoesContent() {
@@ -54,6 +55,7 @@ function ConfiguracoesContent() {
             codigoAcesso: orgData.codigoAcesso,
             mostrarNomeCliente: orgData.mostrarNomeCliente,
             pinAreasSensiveis: orgData.pinAreasSensiveis,
+            somenteAdminLanca: orgData.somenteAdminLanca,
           });
         }
       })
@@ -62,7 +64,11 @@ function ConfiguracoesContent() {
 
   useEffect(carregar, []);
 
-  async function atualizarOrganizacao(patch: { mostrarNomeCliente?: boolean; pinAreasSensiveis?: boolean }) {
+  async function atualizarOrganizacao(patch: {
+    mostrarNomeCliente?: boolean;
+    pinAreasSensiveis?: boolean;
+    somenteAdminLanca?: boolean;
+  }) {
     if (!organizacao) return;
     setSalvandoOrg(true);
     const res = await fetch("/api/organizacao", {
@@ -77,6 +83,7 @@ function ConfiguracoesContent() {
         codigoAcesso: dados.codigoAcesso,
         mostrarNomeCliente: dados.mostrarNomeCliente,
         pinAreasSensiveis: dados.pinAreasSensiveis,
+        somenteAdminLanca: dados.somenteAdminLanca,
       });
     }
     setSalvandoOrg(false);
@@ -144,6 +151,22 @@ function ConfiguracoesContent() {
               ? "Perguntando nome do cliente ✓"
               : "Perguntar nome do cliente no lançamento"}
           </button>
+          <button
+            className={`option-btn ${organizacao.somenteAdminLanca ? "selected" : ""}`}
+            style={{ width: "100%", marginTop: 8 }}
+            disabled={salvandoOrg}
+            onClick={() =>
+              atualizarOrganizacao({ somenteAdminLanca: !organizacao.somenteAdminLanca })
+            }
+          >
+            {organizacao.somenteAdminLanca
+              ? "Somente admin lança atendimentos ✓"
+              : "Somente admin lança atendimentos?"}
+          </button>
+          <p className="subtitle" style={{ marginTop: 8, marginBottom: 0 }}>
+            Se sim, os barbeiros contratados não lançam pelo próprio usuário — o admin lança
+            todos os atendimentos e escolhe o atendente na hora.
+          </p>
 
           <p className="section-label">Segurança</p>
           <button
