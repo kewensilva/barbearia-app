@@ -29,6 +29,7 @@ type OrganizacaoInfo = {
   mostrarNomeCliente: boolean;
   pinAreasSensiveis: boolean;
   somenteAdminLanca: boolean;
+  pinOperacionalConfigurado: boolean;
 };
 
 function ConfiguracoesContent() {
@@ -56,6 +57,7 @@ function ConfiguracoesContent() {
             mostrarNomeCliente: orgData.mostrarNomeCliente,
             pinAreasSensiveis: orgData.pinAreasSensiveis,
             somenteAdminLanca: orgData.somenteAdminLanca,
+            pinOperacionalConfigurado: orgData.pinOperacionalConfigurado,
           });
         }
       })
@@ -68,6 +70,7 @@ function ConfiguracoesContent() {
     mostrarNomeCliente?: boolean;
     pinAreasSensiveis?: boolean;
     somenteAdminLanca?: boolean;
+    pinOperacional?: string;
   }) {
     if (!organizacao) return;
     setSalvandoOrg(true);
@@ -84,9 +87,11 @@ function ConfiguracoesContent() {
         mostrarNomeCliente: dados.mostrarNomeCliente,
         pinAreasSensiveis: dados.pinAreasSensiveis,
         somenteAdminLanca: dados.somenteAdminLanca,
+        pinOperacionalConfigurado: dados.pinOperacionalConfigurado,
       });
     }
     setSalvandoOrg(false);
+    return res.ok;
   }
 
   async function salvarComissao(barberId: string, tipo: TipoComissao, valor: number) {
@@ -168,6 +173,14 @@ function ConfiguracoesContent() {
             todos os atendimentos e escolhe o atendente na hora.
           </p>
 
+          {organizacao.somenteAdminLanca && (
+            <PinOperacional
+              configurado={organizacao.pinOperacionalConfigurado}
+              salvando={salvandoOrg}
+              onSalvar={(pin) => atualizarOrganizacao({ pinOperacional: pin })}
+            />
+          )}
+
           <p className="section-label">Segurança</p>
           <button
             className={`option-btn ${organizacao.pinAreasSensiveis ? "selected" : ""}`}
@@ -203,6 +216,61 @@ function ConfiguracoesContent() {
         />
       ))}
     </main>
+  );
+}
+
+function PinOperacional({
+  configurado,
+  salvando,
+  onSalvar,
+}: {
+  configurado: boolean;
+  salvando: boolean;
+  onSalvar: (pin: string) => Promise<boolean | undefined>;
+}) {
+  const [pin, setPin] = useState("");
+  const [confirmacao, setConfirmacao] = useState("");
+  const [salvo, setSalvo] = useState(false);
+
+  const podeSalvar = /^\d{4}$/.test(pin) && pin === confirmacao;
+
+  async function salvar() {
+    const ok = await onSalvar(pin);
+    if (ok) {
+      setPin("");
+      setConfirmacao("");
+      setSalvo(true);
+      setTimeout(() => setSalvo(false), 2000);
+    }
+  }
+
+  return (
+    <div style={{ marginTop: 12 }}>
+      <p className="subtitle" style={{ marginBottom: 8 }}>
+        PIN operacional{configurado ? " (já configurado)" : " — ainda não configurado"}: usado
+        só pra desbloquear o lançamento de atendimento, sem dar acesso a relatório, despesas,
+        configurações, usuários ou serviços.
+      </p>
+      <input
+        className="input"
+        inputMode="numeric"
+        maxLength={4}
+        placeholder="Novo PIN operacional (4 dígitos)"
+        value={pin}
+        onChange={(e) => setPin(e.target.value.replace(/\D/g, "").slice(0, 4))}
+      />
+      <input
+        className="input"
+        inputMode="numeric"
+        maxLength={4}
+        placeholder="Confirme o PIN"
+        value={confirmacao}
+        onChange={(e) => setConfirmacao(e.target.value.replace(/\D/g, "").slice(0, 4))}
+      />
+      <button className="small-btn" disabled={!podeSalvar || salvando} onClick={salvar}>
+        {salvo ? "Salvo ✓" : salvando ? "Salvando..." : "Salvar PIN operacional"}
+      </button>
+    </div>
   );
 }
 

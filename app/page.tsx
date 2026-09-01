@@ -22,6 +22,13 @@ export default function Home() {
   const [verificando, setVerificando] = useState(false);
   const [lembrarNesteAparelho, setLembrarNesteAparelho] = useState(false);
   const [redirecionandoDispositivo, setRedirecionandoDispositivo] = useState(false);
+  const [somenteAdminLanca, setSomenteAdminLanca] = useState(false);
+  const [pinOperacionalConfigurado, setPinOperacionalConfigurado] = useState(false);
+
+  const [modoOperacional, setModoOperacional] = useState(false);
+  const [pinOperacional, setPinOperacional] = useState("");
+  const [erroOperacional, setErroOperacional] = useState<string | null>(null);
+  const [verificandoOperacional, setVerificandoOperacional] = useState(false);
 
   function verificarVinculo() {
     setCarregando(true);
@@ -30,6 +37,8 @@ export default function Home() {
       .then(async (dados) => {
         setVinculado(dados.vinculado);
         setNomeBarbearia(dados.nome ?? "");
+        setSomenteAdminLanca(Boolean(dados.somenteAdminLanca));
+        setPinOperacionalConfigurado(Boolean(dados.pinOperacionalConfigurado));
         if (!dados.vinculado) return;
 
         const dispositivo = await fetch("/api/dispositivo").then((r) => r.json());
@@ -64,6 +73,63 @@ export default function Home() {
     return () => window.removeEventListener("keydown", aoTeclar);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [usuarioSelecionado, pin, verificando]);
+
+  useEffect(() => {
+    if (!modoOperacional) return;
+
+    function aoTeclar(e: KeyboardEvent) {
+      if (/^[0-9]$/.test(e.key)) {
+        digitarOperacional(e.key);
+      } else if (e.key === "Backspace") {
+        setPinOperacional((atual) => atual.slice(0, -1));
+      }
+    }
+
+    window.addEventListener("keydown", aoTeclar);
+    return () => window.removeEventListener("keydown", aoTeclar);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [modoOperacional, pinOperacional, verificandoOperacional]);
+
+  async function digitarOperacional(numero: string) {
+    if (pinOperacional.length >= 4 || verificandoOperacional) return;
+    const novoPin = pinOperacional + numero;
+    setPinOperacional(novoPin);
+    setErroOperacional(null);
+
+    if (novoPin.length === 4) {
+      setVerificandoOperacional(true);
+      try {
+        const res = await fetch("/api/auth/pin-operacional", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ pin: novoPin }),
+        });
+        const dados = await res.json();
+
+        if (res.status === 423) {
+          const ate = new Date(dados.bloqueadoAte).toLocaleTimeString("pt-BR", {
+            hour: "2-digit",
+            minute: "2-digit",
+          });
+          setErroOperacional(`Bloqueado até ${ate}`);
+          setPinOperacional("");
+        } else if (dados.ok) {
+          router.push(`/lancamento?usuario=${dados.adminId}&modo=operacional`);
+          return;
+        } else {
+          setErroOperacional(
+            dados.bloqueadoAte ? "PIN incorreto. Bloqueado por tentativas." : "PIN incorreto, tente de novo"
+          );
+          setPinOperacional("");
+        }
+      } catch {
+        setErroOperacional("Falha ao validar PIN, tente de novo");
+        setPinOperacional("");
+      } finally {
+        setVerificandoOperacional(false);
+      }
+    }
+  }
 
   async function digitar(numero: string) {
     if (pin.length >= 4 || verificando) return;
@@ -120,11 +186,54 @@ export default function Home() {
     return <OnboardingDispositivo onVinculado={verificarVinculo} />;
   }
 
+  if (modoOperacional) {
+    return (
+      <main>
+        <h1>Lançar atendimento</h1>
+        <p className="subtitle">{erroOperacional ?? "Digite o PIN operacional"}</p>
+
+        <div className="pin-dots">
+          {[0, 1, 2, 3].map((i) => (
+            <div key={i} className={`pin-dot ${i < pinOperacional.length ? "filled" : ""}`} />
+          ))}
+        </div>
+
+        <div className="keypad">
+          {["1", "2", "3", "4", "5", "6", "7", "8", "9"].map((n) => (
+            <button key={n} onClick={() => digitarOperacional(n)}>
+              {n}
+            </button>
+          ))}
+          <button
+            onClick={() => {
+              setModoOperacional(false);
+              setPinOperacional("");
+              setErroOperacional(null);
+            }}
+          >
+            voltar
+          </button>
+          <button onClick={() => digitarOperacional("0")}>0</button>
+          <button onClick={() => setPinOperacional(pinOperacional.slice(0, -1))}>⌫</button>
+        </div>
+      </main>
+    );
+  }
+
   if (!usuarioSelecionado) {
     return (
       <main>
         <h1>{nomeBarbearia || "Barbearia"}</h1>
         <p className="subtitle">Quem é você?</p>
+        {somenteAdminLanca && pinOperacionalConfigurado && (
+          <button
+            className="primary-btn"
+            style={{ marginBottom: 20 }}
+            onClick={() => setModoOperacional(true)}
+          >
+            Lançar atendimento
+          </button>
+        )}
         {usuarios.map((u) => (
           <button
             key={u.id}

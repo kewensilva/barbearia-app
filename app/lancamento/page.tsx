@@ -27,6 +27,7 @@ function LancamentoContent() {
   const router = useRouter();
   const params = useSearchParams();
   const usuarioId = params.get("usuario") ?? "";
+  const modoOperacional = params.get("modo") === "operacional";
 
   const [nomeUsuario, setNomeUsuario] = useState("");
   const [roleUsuario, setRoleUsuario] = useState<"admin" | "barber" | null>(null);
@@ -138,10 +139,10 @@ function LancamentoContent() {
       <div className="row">
         <div>
           <h1>Novo atendimento</h1>
-          <p className="subtitle">{nomeUsuario}</p>
+          <p className="subtitle">{modoOperacional ? "Modo lançamento" : nomeUsuario}</p>
         </div>
         <div className="row" style={{ gap: 8 }}>
-          {roleUsuario === "admin" && (
+          {roleUsuario === "admin" && !modoOperacional && (
             <button
               className="tag"
               style={{ border: "none", cursor: "pointer" }}
@@ -150,13 +151,15 @@ function LancamentoContent() {
               ver caixa
             </button>
           )}
-          <button
-            className="tag"
-            style={{ border: "none", cursor: "pointer" }}
-            onClick={() => router.push(`/metricas?usuario=${usuarioId}`)}
-          >
-            métricas
-          </button>
+          {!modoOperacional && (
+            <button
+              className="tag"
+              style={{ border: "none", cursor: "pointer" }}
+              onClick={() => router.push(`/metricas?usuario=${usuarioId}`)}
+            >
+              métricas
+            </button>
+          )}
           <button
             className="tag"
             style={{ border: "none", cursor: "pointer" }}
@@ -164,7 +167,7 @@ function LancamentoContent() {
               fetch("/api/dispositivo", { method: "DELETE" }).finally(() => router.push("/"));
             }}
           >
-            trocar usuário
+            {modoOperacional ? "voltar" : "trocar usuário"}
           </button>
         </div>
       </div>
