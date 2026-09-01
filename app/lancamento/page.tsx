@@ -176,10 +176,17 @@ function LancamentoContent() {
 
       {bloqueadoParaBarbeiro ? (
         <div className="card">
-          <p style={{ marginBottom: 0 }}>
+          <p style={{ marginBottom: 12 }}>
             Nesta barbearia, os atendimentos são lançados pelo admin. Avise o dono pra registrar
             o seu atendimento.
           </p>
+          <button
+            className="primary-btn"
+            style={{ marginTop: 0 }}
+            onClick={() => router.push(`/metricas?usuario=${usuarioId}`)}
+          >
+            Ver meu relatório de atendimentos e comissão
+          </button>
         </div>
       ) : (
         <>

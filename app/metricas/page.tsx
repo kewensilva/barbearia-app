@@ -3,7 +3,7 @@
 import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
-type Preset = "hoje" | "semana" | "mes";
+type Preset = "hoje" | "semana" | "quinzena" | "mes";
 
 type Atendimento = {
   id: string;
@@ -35,6 +35,12 @@ function periodoDoPreset(preset: Preset): { inicio: string; fim: string } {
   if (preset === "semana") {
     const inicio = new Date(hoje);
     inicio.setDate(inicio.getDate() - 6);
+    return { inicio: formatarData(inicio), fim };
+  }
+
+  if (preset === "quinzena") {
+    const inicio = new Date(hoje);
+    inicio.setDate(inicio.getDate() - 14);
     return { inicio: formatarData(inicio), fim };
   }
 
@@ -88,17 +94,18 @@ function MetricasContent() {
       </div>
       <p className="subtitle">Seus atendimentos por período</p>
 
-      <div className="row" style={{ gap: 8 }}>
-        {(["hoje", "semana", "mes"] as Preset[]).map((p) => (
+      <div className="row" style={{ gap: 8, flexWrap: "wrap" }}>
+        {(["hoje", "semana", "quinzena", "mes"] as Preset[]).map((p) => (
           <button
             key={p}
             className={`option-btn ${preset === p ? "selected" : ""}`}
+            style={{ flex: "1 1 40%" }}
             onClick={() => {
               setPreset(p);
               setPeriodo(periodoDoPreset(p));
             }}
           >
-            {{ hoje: "Hoje", semana: "7 dias", mes: "Este mês" }[p]}
+            {{ hoje: "Hoje", semana: "Semanal", quinzena: "Quinzenal", mes: "Mensal" }[p]}
           </button>
         ))}
       </div>
