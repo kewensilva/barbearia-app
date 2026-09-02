@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { getOrgId, getDeviceIdOrNull } from "@/lib/org";
+import { calcularValorComDesconto } from "@/lib/desconto";
 
 export const dynamic = "force-dynamic";
 
@@ -16,7 +17,7 @@ export async function GET(request: Request) {
   let query = supabaseAdmin
     .from("transactions")
     .select(
-      "id, valor_cobrado, forma_pagamento, origem, cliente_nome, criado_em, users(nome), services(nome)"
+      "id, valor_cobrado, forma_pagamento, origem, cliente_nome, criado_em, closing_id, service_id, barber_id, users(nome), services(nome)"
     )
     .eq("org_id", orgId)
     .gte("criado_em", inicio)
@@ -38,14 +39,15 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   const orgId = await getOrgId();
-  const { usuarioId, servicoId, formaPagamento, origem, clienteNome } = await request.json();
+  const { usuarioId, servicoId, formaPagamento, origem, clienteNome, desconto } = await request.json();
 
   if (
     typeof usuarioId !== "string" ||
     typeof servicoId !== "string" ||
     !["dinheiro", "pix", "cartao", "cortesia"].includes(formaPagamento) ||
     !["agendado", "encaixe"].includes(origem) ||
-    (clienteNome !== undefined && typeof clienteNome !== "string")
+    (clienteNome !== undefined && typeof clienteNome !== "string") ||
+    (desconto !== undefined && (typeof desconto !== "number" || desconto < 0))
   ) {
     return NextResponse.json({ erro: "Requisição inválida" }, { status: 400 });
   }
@@ -99,7 +101,7 @@ export async function POST(request: Request) {
       org_id: orgId,
       barber_id: usuarioId,
       service_id: servicoId,
-      valor_cobrado: formaPagamento === "cortesia" ? 0 : servico.preco,
+      valor_cobrado: calcularValorComDesconto(servico.preco, desconto, formaPagamento),
       forma_pagamento: formaPagamento,
       origem,
       cliente_nome: clienteNome?.trim() || null,

@@ -42,6 +42,7 @@ function LancamentoContent() {
   const [meusAtendimentos, setMeusAtendimentos] = useState<Atendimento[]>([]);
   const [mostrarNomeCliente, setMostrarNomeCliente] = useState(false);
   const [clienteNome, setClienteNome] = useState("");
+  const [desconto, setDesconto] = useState("");
   const [somenteAdminLanca, setSomenteAdminLanca] = useState(false);
   const [atendenteId, setAtendenteId] = useState<string | null>(null);
 
@@ -91,6 +92,12 @@ function LancamentoContent() {
 
   const totalHoje = meusAtendimentos.reduce((soma, a) => soma + a.valor_cobrado, 0);
 
+  const servicoSelecionado = servicos.find((s) => s.id === servicoId);
+  const descontoNumero = Number(desconto.replace(",", ".")) || 0;
+  const valorFinal = servicoSelecionado
+    ? Math.max(servicoSelecionado.preco - descontoNumero, 0)
+    : 0;
+
   const precisaNomeCliente = mostrarNomeCliente || pagamento === "cortesia";
   const podeConfirmar =
     Boolean(atendenteEfetivoId) &&
@@ -113,6 +120,7 @@ function LancamentoContent() {
           formaPagamento: pagamento,
           origem,
           clienteNome: precisaNomeCliente ? clienteNome : undefined,
+          desconto: descontoNumero > 0 ? descontoNumero : undefined,
         }),
       });
       if (!res.ok) {
@@ -126,6 +134,7 @@ function LancamentoContent() {
         setServicoId(null);
         setPagamento(null);
         setClienteNome("");
+        setDesconto("");
       }, 1200);
     } catch (err) {
       setErro(err instanceof Error && err.message ? err.message : "Não foi possível lançar o atendimento, tente de novo");
@@ -220,6 +229,26 @@ function LancamentoContent() {
               <span>R$ {s.preco.toFixed(2)}</span>
             </button>
           ))}
+
+          {servicoSelecionado && pagamento !== "cortesia" && (
+            <>
+              <p className="subtitle" style={{ marginBottom: 8, marginTop: 20 }}>
+                Desconto (R$, opcional)
+              </p>
+              <input
+                className="input"
+                inputMode="decimal"
+                placeholder="Ex: 10"
+                value={desconto}
+                onChange={(e) => setDesconto(e.target.value)}
+              />
+              {descontoNumero > 0 && (
+                <p className="subtitle" style={{ marginTop: -8 }}>
+                  Valor final: R$ {valorFinal.toFixed(2)}
+                </p>
+              )}
+            </>
+          )}
 
           <p className="subtitle" style={{ marginBottom: 8, marginTop: 20 }}>
             Forma de pagamento
