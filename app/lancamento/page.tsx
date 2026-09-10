@@ -5,14 +5,17 @@ import { useRouter, useSearchParams } from "next/navigation";
 
 type FormaPagamento = "dinheiro" | "pix" | "cartao" | "cortesia";
 type Servico = { id: string; nome: string; preco: number };
+type Produto = { id: string; nome: string; preco: number };
 type Usuario = { id: string; nome: string; role: "admin" | "barber" };
 type Atendimento = {
   id: string;
   valor_cobrado: number;
+  valor_produto: number | null;
   forma_pagamento: FormaPagamento;
   criado_em: string;
   cliente_nome: string | null;
   services: { nome: string } | null;
+  products: { nome: string } | null;
 };
 
 export default function Lancamento() {
@@ -34,6 +37,8 @@ function LancamentoContent() {
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
   const [servicos, setServicos] = useState<Servico[]>([]);
   const [servicoId, setServicoId] = useState<string | null>(null);
+  const [produtos, setProdutos] = useState<Produto[]>([]);
+  const [produtoId, setProdutoId] = useState<string | null>(null);
   const [pagamento, setPagamento] = useState<FormaPagamento | null>(null);
   const [origem, setOrigem] = useState<"agendado" | "encaixe">("agendado");
   const [salvando, setSalvando] = useState(false);
@@ -67,6 +72,11 @@ function LancamentoContent() {
       .then(setServicos)
       .catch(() => setErro("Não foi possível carregar os serviços"));
 
+    fetch("/api/produtos")
+      .then((r) => r.json())
+      .then(setProdutos)
+      .catch(() => {});
+
     fetch("/api/usuarios")
       .then((r) => r.json())
       .then((dados: Usuario[]) => {
@@ -90,13 +100,19 @@ function LancamentoContent() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [atendenteEfetivoId]);
 
-  const totalHoje = meusAtendimentos.reduce((soma, a) => soma + a.valor_cobrado, 0);
+  const totalHoje = meusAtendimentos.reduce(
+    (soma, a) => soma + a.valor_cobrado + (a.valor_produto ?? 0),
+    0
+  );
 
   const servicoSelecionado = servicos.find((s) => s.id === servicoId);
+  const produtoSelecionado = produtos.find((p) => p.id === produtoId);
   const descontoNumero = Number(desconto.replace(",", ".")) || 0;
-  const valorFinal = servicoSelecionado
+  const valorServicoFinal = servicoSelecionado
     ? Math.max(servicoSelecionado.preco - descontoNumero, 0)
     : 0;
+  const valorFinal =
+    pagamento === "cortesia" ? 0 : valorServicoFinal + (produtoSelecionado?.preco ?? 0);
 
   const precisaNomeCliente = mostrarNomeCliente || pagamento === "cortesia";
   const podeConfirmar =
@@ -121,6 +137,7 @@ function LancamentoContent() {
           origem,
           clienteNome: precisaNomeCliente ? clienteNome : undefined,
           desconto: descontoNumero > 0 ? descontoNumero : undefined,
+          produtoId: produtoId || undefined,
         }),
       });
       if (!res.ok) {
@@ -135,6 +152,7 @@ function LancamentoContent() {
         setPagamento(null);
         setClienteNome("");
         setDesconto("");
+        setProdutoId(null);
       }, 1200);
     } catch (err) {
       setErro(err instanceof Error && err.message ? err.message : "Não foi possível lançar o atendimento, tente de novo");
@@ -242,12 +260,40 @@ function LancamentoContent() {
                 value={desconto}
                 onChange={(e) => setDesconto(e.target.value)}
               />
-              {descontoNumero > 0 && (
-                <p className="subtitle" style={{ marginTop: -8 }}>
-                  Valor final: R$ {valorFinal.toFixed(2)}
-                </p>
-              )}
             </>
+          )}
+
+          {produtos.length > 0 && (
+            <>
+              <p className="subtitle" style={{ marginBottom: 8, marginTop: 20 }}>
+                Produto vendido junto (opcional)
+              </p>
+              <div className="row" style={{ gap: 8, flexWrap: "wrap" }}>
+                <button
+                  className={`option-btn ${produtoId === null ? "selected" : ""}`}
+                  style={{ flex: "1 1 40%" }}
+                  onClick={() => setProdutoId(null)}
+                >
+                  Nenhum
+                </button>
+                {produtos.map((p) => (
+                  <button
+                    key={p.id}
+                    className={`option-btn ${produtoId === p.id ? "selected" : ""}`}
+                    style={{ flex: "1 1 40%" }}
+                    onClick={() => setProdutoId(p.id)}
+                  >
+                    {p.nome} · R$ {p.preco.toFixed(2)}
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
+
+          {servicoSelecionado && pagamento !== "cortesia" && (descontoNumero > 0 || produtoSelecionado) && (
+            <p className="subtitle" style={{ marginTop: 12 }}>
+              Valor final (serviço{produtoSelecionado ? " + produto" : ""}): R$ {valorFinal.toFixed(2)}
+            </p>
           )}
 
           <p className="subtitle" style={{ marginBottom: 8, marginTop: 20 }}>
@@ -329,6 +375,7 @@ function LancamentoContent() {
             <div>
               <div>
                 {a.services?.nome}
+                {a.products?.nome ? ` + ${a.products.nome}` : ""}
                 {a.cliente_nome ? ` · ${a.cliente_nome}` : ""}
               </div>
               <div className="subtitle" style={{ marginBottom: 0 }}>
@@ -339,7 +386,7 @@ function LancamentoContent() {
                 · {a.forma_pagamento}
               </div>
             </div>
-            <div>R$ {a.valor_cobrado.toFixed(2)}</div>
+            <div>R$ {(a.valor_cobrado + (a.valor_produto ?? 0)).toFixed(2)}</div>
           </div>
         ))}
       </div>

@@ -2,6 +2,7 @@
 
 import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { hojeBrasil } from "@/lib/data";
 
 type Categoria = "aluguel" | "energia" | "internet" | "produtos" | "outros";
 type Despesa = {
@@ -15,10 +16,6 @@ type Despesa = {
 };
 
 const CATEGORIAS: Categoria[] = ["aluguel", "energia", "internet", "produtos", "outros"];
-
-function hoje() {
-  return new Date().toISOString().slice(0, 10);
-}
 
 export default function Despesas() {
   return (
@@ -39,7 +36,7 @@ function DespesasContent() {
   const [descricao, setDescricao] = useState("");
   const [categoria, setCategoria] = useState<Categoria>("produtos");
   const [valor, setValor] = useState("");
-  const [data, setData] = useState(hoje());
+  const [data, setData] = useState(hojeBrasil());
   const [recorrente, setRecorrente] = useState(false);
   const [salvando, setSalvando] = useState(false);
 
@@ -72,7 +69,7 @@ function DespesasContent() {
       setDescricao("");
       setValor("");
       setRecorrente(false);
-      setData(hoje());
+      setData(hojeBrasil());
     }
     carregar();
     setSalvando(false);

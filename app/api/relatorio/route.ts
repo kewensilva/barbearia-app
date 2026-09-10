@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { getOrgId } from "@/lib/org";
+import { limitesDoDiaBrasil } from "@/lib/data";
 
 export const dynamic = "force-dynamic";
 
@@ -14,14 +15,16 @@ export async function GET(request: Request) {
     return NextResponse.json({ erro: "Informe inicio e fim (YYYY-MM-DD)" }, { status: 400 });
   }
 
-  const inicioIso = new Date(`${inicio}T00:00:00.000Z`).toISOString();
-  const fimIso = new Date(`${fim}T23:59:59.999Z`).toISOString();
+  const inicioIso = limitesDoDiaBrasil(inicio).inicio;
+  const fimIso = limitesDoDiaBrasil(fim).fim;
 
   const [{ data: transacoes, error: transacoesError }, { data: despesas, error: despesasError }] =
     await Promise.all([
       supabaseAdmin
         .from("transactions")
-        .select("valor_cobrado, barber_id, forma_pagamento, cliente_nome, criado_em, users(nome), services(nome)")
+        .select(
+          "valor_cobrado, valor_produto, barber_id, forma_pagamento, cliente_nome, criado_em, users(nome), services(nome)"
+        )
         .eq("org_id", orgId)
         .gte("criado_em", inicioIso)
         .lte("criado_em", fimIso),
@@ -43,14 +46,14 @@ export async function GET(request: Request) {
   const pagas = (transacoes ?? []).filter((t) => t.forma_pagamento !== "cortesia");
   const cortesias = (transacoes ?? []).filter((t) => t.forma_pagamento === "cortesia");
 
-  const entradas = pagas.reduce((soma, t) => soma + t.valor_cobrado, 0);
+  const entradas = pagas.reduce((soma, t) => soma + t.valor_cobrado + (t.valor_produto ?? 0), 0);
   const saidas = (despesas ?? []).reduce((soma, d) => soma + d.valor, 0);
 
   const porBarbeiro = new Map<string, { nome: string; total: number; quantidade: number }>();
   for (const t of pagas) {
     const nome = (t.users as unknown as { nome: string } | null)?.nome ?? "—";
     const atual = porBarbeiro.get(t.barber_id) ?? { nome, total: 0, quantidade: 0 };
-    atual.total += t.valor_cobrado;
+    atual.total += t.valor_cobrado + (t.valor_produto ?? 0);
     atual.quantidade += 1;
     porBarbeiro.set(t.barber_id, atual);
   }

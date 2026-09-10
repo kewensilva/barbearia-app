@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { getOrgId } from "@/lib/org";
+import { hojeBrasil } from "@/lib/data";
+
+const FUSO_HORARIO = "America/Sao_Paulo";
 
 export const dynamic = "force-dynamic";
 
@@ -37,16 +40,16 @@ export async function POST(_request: Request, { params }: { params: { id: string
 
   if (closing.total_comissao > 0) {
     const nomeBarbeiro = (closing.users as unknown as { nome: string } | null)?.nome ?? "barbeiro";
-    const periodo = `${new Date(closing.periodo_inicio).toLocaleDateString("pt-BR")} a ${new Date(
-      closing.periodo_fim
-    ).toLocaleDateString("pt-BR")}`;
+    const periodo = `${new Date(closing.periodo_inicio).toLocaleDateString("pt-BR", {
+      timeZone: FUSO_HORARIO,
+    })} a ${new Date(closing.periodo_fim).toLocaleDateString("pt-BR", { timeZone: FUSO_HORARIO })}`;
 
     const { error: expenseError } = await supabaseAdmin.from("expenses").insert({
       org_id: orgId,
       descricao: `Comissão - ${nomeBarbeiro} - ${periodo}`,
       categoria: "comissao",
       valor: closing.total_comissao,
-      data: pagoEm.slice(0, 10),
+      data: hojeBrasil(),
       recorrente: false,
       closing_id: closing.id,
     });

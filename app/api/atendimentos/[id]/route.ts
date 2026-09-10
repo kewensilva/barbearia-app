@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { getOrgId } from "@/lib/org";
+import { calcularVendaProduto } from "@/lib/produto";
 
 export const dynamic = "force-dynamic";
 
@@ -17,7 +18,8 @@ async function buscarAtendimentoAberto(orgId: string, id: string) {
 
 export async function PATCH(request: Request, { params }: { params: { id: string } }) {
   const orgId = await getOrgId();
-  const { servicoId, formaPagamento, origem, clienteNome, valorCobrado } = await request.json();
+  const { servicoId, formaPagamento, origem, clienteNome, valorCobrado, produtoId, valorProduto } =
+    await request.json();
 
   if (
     typeof servicoId !== "string" ||
@@ -25,7 +27,9 @@ export async function PATCH(request: Request, { params }: { params: { id: string
     !["agendado", "encaixe"].includes(origem) ||
     (clienteNome !== undefined && typeof clienteNome !== "string") ||
     typeof valorCobrado !== "number" ||
-    valorCobrado < 0
+    valorCobrado < 0 ||
+    (produtoId !== undefined && produtoId !== null && typeof produtoId !== "string") ||
+    (valorProduto !== undefined && (typeof valorProduto !== "number" || valorProduto < 0))
   ) {
     return NextResponse.json({ erro: "Requisição inválida" }, { status: 400 });
   }
@@ -59,6 +63,27 @@ export async function PATCH(request: Request, { params }: { params: { id: string
     return NextResponse.json({ erro: "Serviço não encontrado" }, { status: 404 });
   }
 
+  let valorProdutoFinal: number | null = null;
+  let comissaoProdutoFinal: number | null = null;
+
+  if (produtoId) {
+    const { data: produto, error: produtoError } = await supabaseAdmin
+      .from("products")
+      .select("preco, comissao_percentual")
+      .eq("id", produtoId)
+      .eq("org_id", orgId)
+      .single();
+
+    if (produtoError || !produto) {
+      return NextResponse.json({ erro: "Produto não encontrado" }, { status: 404 });
+    }
+
+    const precoBase = typeof valorProduto === "number" ? valorProduto : produto.preco;
+    const venda = calcularVendaProduto(precoBase, produto.comissao_percentual, formaPagamento);
+    valorProdutoFinal = venda.valorProduto;
+    comissaoProdutoFinal = venda.comissaoProduto;
+  }
+
   const { data, error } = await supabaseAdmin
     .from("transactions")
     .update({
@@ -67,6 +92,9 @@ export async function PATCH(request: Request, { params }: { params: { id: string
       forma_pagamento: formaPagamento,
       origem,
       cliente_nome: clienteNome?.trim() || null,
+      product_id: produtoId || null,
+      valor_produto: valorProdutoFinal,
+      comissao_produto: comissaoProdutoFinal,
     })
     .eq("id", params.id)
     .eq("org_id", orgId)

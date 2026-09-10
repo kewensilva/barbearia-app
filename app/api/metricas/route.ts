@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { getOrgId } from "@/lib/org";
 import { calcularComissao } from "@/lib/fechamento";
+import { limitesDoDiaBrasil } from "@/lib/data";
 
 export const dynamic = "force-dynamic";
 
@@ -16,13 +17,15 @@ export async function GET(request: Request) {
     return NextResponse.json({ erro: "Informe usuario, inicio e fim" }, { status: 400 });
   }
 
-  const inicioIso = new Date(`${inicio}T00:00:00.000Z`).toISOString();
-  const fimIso = new Date(`${fim}T23:59:59.999Z`).toISOString();
+  const inicioIso = limitesDoDiaBrasil(inicio).inicio;
+  const fimIso = limitesDoDiaBrasil(fim).fim;
 
   const [{ data: atendimentos, error }, { data: comissao }] = await Promise.all([
     supabaseAdmin
       .from("transactions")
-      .select("id, valor_cobrado, forma_pagamento, origem, cliente_nome, criado_em, services(nome)")
+      .select(
+        "id, valor_cobrado, valor_produto, comissao_produto, forma_pagamento, origem, cliente_nome, criado_em, services(nome), products(nome)"
+      )
       .eq("org_id", orgId)
       .eq("barber_id", usuarioId)
       .gte("criado_em", inicioIso)
@@ -45,8 +48,11 @@ export async function GET(request: Request) {
   const pagos = (atendimentos ?? []).filter((a) => a.forma_pagamento !== "cortesia");
   const cortesias = (atendimentos ?? []).length - pagos.length;
 
-  const totalBruto = pagos.reduce((soma, a) => soma + a.valor_cobrado, 0);
-  const totalComissao = calcularComissao(totalBruto, pagos.length, comissao);
+  const totalBrutoServico = pagos.reduce((soma, a) => soma + a.valor_cobrado, 0);
+  const totalBrutoProdutos = pagos.reduce((soma, a) => soma + (a.valor_produto ?? 0), 0);
+  const totalComissaoProdutos = pagos.reduce((soma, a) => soma + (a.comissao_produto ?? 0), 0);
+  const totalBruto = totalBrutoServico + totalBrutoProdutos;
+  const totalComissao = calcularComissao(totalBrutoServico, pagos.length, comissao) + totalComissaoProdutos;
 
   return NextResponse.json({
     quantidade: pagos.length,

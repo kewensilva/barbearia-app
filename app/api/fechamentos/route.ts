@@ -24,7 +24,7 @@ export async function GET() {
       const [{ data: pendentes }, { data: comissao }] = await Promise.all([
         supabaseAdmin
           .from("transactions")
-          .select("valor_cobrado, forma_pagamento")
+          .select("valor_cobrado, valor_produto, comissao_produto, forma_pagamento")
           .eq("org_id", orgId)
           .eq("barber_id", usuario.id)
           .is("closing_id", null),
@@ -39,8 +39,15 @@ export async function GET() {
       ]);
 
       const quantidade = (pendentes ?? []).filter((t) => t.forma_pagamento !== "cortesia").length;
-      const totalBruto = (pendentes ?? []).reduce((soma, t) => soma + t.valor_cobrado, 0);
-      const totalComissao = calcularComissao(totalBruto, quantidade, comissao);
+      const totalBrutoServico = (pendentes ?? []).reduce((soma, t) => soma + t.valor_cobrado, 0);
+      const totalBrutoProdutos = (pendentes ?? []).reduce((soma, t) => soma + (t.valor_produto ?? 0), 0);
+      const totalComissaoProdutos = (pendentes ?? []).reduce(
+        (soma, t) => soma + (t.comissao_produto ?? 0),
+        0
+      );
+      const totalBruto = totalBrutoServico + totalBrutoProdutos;
+      const totalComissao =
+        calcularComissao(totalBrutoServico, quantidade, comissao) + totalComissaoProdutos;
 
       return { ...usuario, quantidade, totalBruto, totalComissao };
     })
@@ -70,7 +77,7 @@ export async function POST(request: Request) {
 
   const { data: abertos, error: abertosError } = await supabaseAdmin
     .from("transactions")
-    .select("id, valor_cobrado, forma_pagamento, criado_em")
+    .select("id, valor_cobrado, valor_produto, comissao_produto, forma_pagamento, criado_em")
     .eq("org_id", orgId)
     .eq("barber_id", barberId)
     .is("closing_id", null)
@@ -93,9 +100,13 @@ export async function POST(request: Request) {
     .limit(1)
     .maybeSingle();
 
-  const totalBruto = abertos.reduce((soma, t) => soma + t.valor_cobrado, 0);
+  const totalBrutoServico = abertos.reduce((soma, t) => soma + t.valor_cobrado, 0);
+  const totalBrutoProdutos = abertos.reduce((soma, t) => soma + (t.valor_produto ?? 0), 0);
+  const totalComissaoProdutos = abertos.reduce((soma, t) => soma + (t.comissao_produto ?? 0), 0);
+  const totalBruto = totalBrutoServico + totalBrutoProdutos;
   const quantidadePaga = abertos.filter((t) => t.forma_pagamento !== "cortesia").length;
-  const totalComissao = calcularComissao(totalBruto, quantidadePaga, comissao);
+  const totalComissao =
+    calcularComissao(totalBrutoServico, quantidadePaga, comissao) + totalComissaoProdutos;
   const periodoInicio = abertos[0].criado_em;
   const periodoFim = new Date().toISOString();
 

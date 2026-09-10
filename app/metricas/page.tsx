@@ -2,16 +2,19 @@
 
 import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { formatarDataBrasil } from "@/lib/data";
 
 type Preset = "hoje" | "semana" | "quinzena" | "mes";
 
 type Atendimento = {
   id: string;
   valor_cobrado: number;
+  valor_produto: number | null;
   forma_pagamento: string;
   cliente_nome: string | null;
   criado_em: string;
   services: { nome: string } | null;
+  products: { nome: string } | null;
 };
 
 type Metricas = {
@@ -22,9 +25,7 @@ type Metricas = {
   atendimentos: Atendimento[];
 };
 
-function formatarData(d: Date) {
-  return d.toISOString().slice(0, 10);
-}
+const formatarData = formatarDataBrasil;
 
 function periodoDoPreset(preset: Preset): { inicio: string; fim: string } {
   const hoje = new Date();
@@ -149,6 +150,7 @@ function MetricasContent() {
                 <div>
                   <div>
                     {a.services?.nome}
+                    {a.products?.nome ? ` + ${a.products.nome}` : ""}
                     {a.cliente_nome ? ` · ${a.cliente_nome}` : ""}
                   </div>
                   <div className="subtitle" style={{ marginBottom: 0 }}>
@@ -161,7 +163,7 @@ function MetricasContent() {
                     · {a.forma_pagamento}
                   </div>
                 </div>
-                <div>R$ {a.valor_cobrado.toFixed(2)}</div>
+                <div>R$ {(a.valor_cobrado + (a.valor_produto ?? 0)).toFixed(2)}</div>
               </div>
             ))}
           </div>

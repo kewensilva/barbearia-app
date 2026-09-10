@@ -2,6 +2,8 @@
 
 import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { AtendimentoItem, type Atendimento, type Servico, type Produto } from "@/app/components/AtendimentoItem";
+import { formatarDataBrasil } from "@/lib/data";
 
 type Preset = "hoje" | "semana" | "mes" | "custom";
 
@@ -19,9 +21,7 @@ type Relatorio = {
   }[];
 };
 
-function formatarData(d: Date) {
-  return d.toISOString().slice(0, 10);
-}
+const formatarData = formatarDataBrasil;
 
 function periodoDoPreset(preset: Preset): { inicio: string; fim: string } {
   const hoje = new Date();
@@ -57,6 +57,17 @@ function RelatorioContent() {
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
 
+  const [atendimentosDetalhados, setAtendimentosDetalhados] = useState<Atendimento[]>([]);
+  const [servicos, setServicos] = useState<Servico[]>([]);
+  const [produtos, setProdutos] = useState<Produto[]>([]);
+
+  function carregarAtendimentosDetalhados() {
+    fetch(`/api/atendimentos?inicio=${inicio}&fim=${fim}`)
+      .then((r) => r.json())
+      .then(setAtendimentosDetalhados)
+      .catch(() => {});
+  }
+
   useEffect(() => {
     setCarregando(true);
     setErro(null);
@@ -68,7 +79,21 @@ function RelatorioContent() {
       })
       .catch(() => setErro("Não foi possível carregar o relatório"))
       .finally(() => setCarregando(false));
+
+    carregarAtendimentosDetalhados();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [inicio, fim]);
+
+  useEffect(() => {
+    fetch("/api/servicos")
+      .then((r) => r.json())
+      .then(setServicos)
+      .catch(() => {});
+    fetch("/api/produtos")
+      .then((r) => r.json())
+      .then(setProdutos)
+      .catch(() => {});
+  }, []);
 
   function escolherPreset(p: Preset) {
     setPreset(p);
@@ -171,6 +196,24 @@ function RelatorioContent() {
                 <div>{c.categoria}</div>
                 <div>R$ {c.total.toFixed(2)}</div>
               </div>
+            ))}
+          </div>
+
+          <p className="section-label">
+            Atendimentos detalhados do período ({atendimentosDetalhados.length})
+          </p>
+          <div className="card">
+            {atendimentosDetalhados.length === 0 && (
+              <p className="subtitle">Nenhum atendimento no período</p>
+            )}
+            {atendimentosDetalhados.map((a) => (
+              <AtendimentoItem
+                key={a.id}
+                atendimento={a}
+                servicos={servicos}
+                produtos={produtos}
+                onAlterado={carregarAtendimentosDetalhados}
+              />
             ))}
           </div>
 
