@@ -65,7 +65,7 @@ function RelatorioContent() {
     fetch(`/api/atendimentos?inicio=${inicio}&fim=${fim}`)
       .then((r) => r.json())
       .then(setAtendimentosDetalhados)
-      .catch(() => {});
+      .catch(() => { });
   }
 
   useEffect(() => {
@@ -88,11 +88,11 @@ function RelatorioContent() {
     fetch("/api/servicos")
       .then((r) => r.json())
       .then(setServicos)
-      .catch(() => {});
+      .catch(() => { });
     fetch("/api/produtos")
       .then((r) => r.json())
       .then(setProdutos)
-      .catch(() => {});
+      .catch(() => { });
   }, []);
 
   function escolherPreset(p: Preset) {
@@ -154,18 +154,18 @@ function RelatorioContent() {
               <div>
                 <p className="subtitle" style={{ marginBottom: 0 }}>Entradas</p>
                 <div style={{ fontSize: 20, fontWeight: 700, color: "#16a34a" }}>
-                  R$ {relatorio.entradas.toFixed(2)}
+                  {relatorio.entradas.toLocaleString('pt-BR', {style:"currency", currency:"BRL"})}
                 </div>
               </div>
               <div>
                 <p className="subtitle" style={{ marginBottom: 0 }}>Saídas</p>
                 <div style={{ fontSize: 20, fontWeight: 700, color: "#dc2626" }}>
-                  R$ {relatorio.saidas.toFixed(2)}
+                   {relatorio.saidas.toLocaleString('pt-BR', {style:"currency", currency:"BRL"})}
                 </div>
               </div>
             </div>
             <p className="subtitle" style={{ marginBottom: 0, marginTop: 12 }}>Saldo do período</p>
-            <div className="total">R$ {relatorio.saldo.toFixed(2)}</div>
+            <div className="total"> {relatorio.saldo.toLocaleString('pt-BR', {style:"currency", currency:"BRL"})}</div>
           </div>
 
           <p className="section-label">Comparativo entre barbeiros</p>
@@ -181,7 +181,7 @@ function RelatorioContent() {
                     {b.quantidade} atendimento(s)
                   </div>
                 </div>
-                <div>R$ {b.total.toFixed(2)}</div>
+                <div>{b.total.toLocaleString('pt-BR', {style:"currency", currency:"BRL"})}</div>
               </div>
             ))}
           </div>
@@ -194,7 +194,7 @@ function RelatorioContent() {
             {relatorio.despesasPorCategoria.map((c) => (
               <div key={c.categoria} className="tx-item">
                 <div>{c.categoria}</div>
-                <div>R$ {c.total.toFixed(2)}</div>
+                <div>{c.total.toLocaleString('pt-BR', {style:"currency", currency:"BRL"})}</div>
               </div>
             ))}
           </div>

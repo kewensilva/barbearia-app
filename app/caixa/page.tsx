@@ -85,7 +85,7 @@ function CaixaContent() {
 
       <div className="card">
         <p className="subtitle" style={{ marginBottom: 0 }}>Total do dia</p>
-        <div className="total">R$ {total.toFixed(2)}</div>
+        <div className="total"> {total.toLocaleString('pt-BR', {style:"currency", currency:"BRL"})}</div>
       </div>
 
       <div className="card">

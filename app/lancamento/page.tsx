@@ -244,7 +244,7 @@ function LancamentoContent() {
               onClick={() => setServicoId(s.id)}
             >
               <span>{s.nome}</span>
-              <span>R$ {s.preco.toFixed(2)}</span>
+              <span>{s.preco.toLocaleString('pt-BR', {style:"currency", currency:"BRL"})}</span>
             </button>
           ))}
 
@@ -283,7 +283,7 @@ function LancamentoContent() {
                     style={{ flex: "1 1 40%" }}
                     onClick={() => setProdutoId(p.id)}
                   >
-                    {p.nome} · R$ {p.preco.toFixed(2)}
+                    {p.nome} · {p.preco.toLocaleString('pt-BR', {style:"currency", currency:"BRL"})}
                   </button>
                 ))}
               </div>
@@ -292,7 +292,7 @@ function LancamentoContent() {
 
           {servicoSelecionado && pagamento !== "cortesia" && (descontoNumero > 0 || produtoSelecionado) && (
             <p className="subtitle" style={{ marginTop: 12 }}>
-              Valor final (serviço{produtoSelecionado ? " + produto" : ""}): R$ {valorFinal.toFixed(2)}
+              Valor final (serviço{produtoSelecionado ? " + produto" : ""}): {valorFinal.toLocaleString('pt-BR', {style:"currency", currency:"BRL"})}
             </p>
           )}
 
@@ -363,7 +363,7 @@ function LancamentoContent() {
       <div className="card">
         <div className="row">
           <p className="subtitle" style={{ marginBottom: 0 }}>Total</p>
-          <div style={{ fontWeight: 700 }}>R$ {totalHoje.toFixed(2)}</div>
+          <div style={{ fontWeight: 700 }}>{totalHoje.toLocaleString('pt-BR', {style:"currency", currency:"BRL"})}</div>
         </div>
       </div>
       <div className="card">
@@ -386,7 +386,7 @@ function LancamentoContent() {
                 · {a.forma_pagamento}
               </div>
             </div>
-            <div>R$ {(a.valor_cobrado + (a.valor_produto ?? 0)).toFixed(2)}</div>
+            <div> {(a.valor_cobrado + (a.valor_produto ?? 0)).toLocaleString('pt-BR', {style:"currency", currency:"BRL"})}</div>
           </div>
         ))}
       </div>

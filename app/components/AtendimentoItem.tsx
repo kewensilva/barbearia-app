@@ -223,7 +223,7 @@ export function AtendimentoItem({
             · {atendimento.forma_pagamento}
           </div>
         </div>
-        <div>R$ {(atendimento.valor_cobrado + (atendimento.valor_produto ?? 0)).toFixed(2)}</div>
+        <div>{(atendimento.valor_cobrado + (atendimento.valor_produto ?? 0)).toLocaleString('pt-BR', {style:"currency", currency:"BRL"})}</div>
       </div>
 
       {erro && <p className="subtitle" style={{ color: "#dc2626", marginBottom: 0 }}>{erro}</p>}

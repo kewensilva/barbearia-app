@@ -125,14 +125,14 @@ function MetricasContent() {
               <div>
                 <p className="subtitle" style={{ marginBottom: 0 }}>Faturado</p>
                 <div style={{ fontSize: 20, fontWeight: 700, color: "#16a34a" }}>
-                  R$ {metricas.totalBruto.toFixed(2)}
+                  {metricas.totalBruto.toLocaleString('pt-BR', {style:"currency", currency:"BRL"})}
                 </div>
               </div>
             </div>
             <p className="subtitle" style={{ marginBottom: 0, marginTop: 12 }}>
               Comissão estimada do período
             </p>
-            <div className="total">R$ {metricas.totalComissao.toFixed(2)}</div>
+            <div className="total">{metricas.totalComissao.toLocaleString('pt-BR', {style:"currency", currency:"BRL"})}</div>
             {metricas.quantidadeCortesias > 0 && (
               <p className="subtitle" style={{ marginBottom: 0 }}>
                 + {metricas.quantidadeCortesias} cortesia(s) (não contam pra comissão)
@@ -163,7 +163,7 @@ function MetricasContent() {
                     · {a.forma_pagamento}
                   </div>
                 </div>
-                <div>R$ {(a.valor_cobrado + (a.valor_produto ?? 0)).toFixed(2)}</div>
+                <div>{(a.valor_cobrado + (a.valor_produto ?? 0)).toLocaleString('pt-BR', {style:"currency", currency:"BRL"})}</div>
               </div>
             ))}
           </div>
