@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { getOrgId } from "@/lib/org";
-import { CATEGORIAS_MANUAIS } from "@/lib/despesa";
+import { categoriaPermitida } from "@/lib/despesa";
 import { SELECT_DESPESA, barbeiroValido } from "@/lib/despesaDb";
 
 export const dynamic = "force-dynamic";
@@ -38,12 +38,16 @@ export async function POST(request: Request) {
   if (
     typeof descricao !== "string" ||
     descricao.trim() === "" ||
-    !CATEGORIAS_MANUAIS.includes(categoria) ||
+    typeof categoria !== "string" ||
     typeof valor !== "number" ||
     valor <= 0 ||
     typeof data !== "string"
   ) {
     return NextResponse.json({ erro: "Requisição inválida" }, { status: 400 });
+  }
+
+  if (!categoriaPermitida(categoria, Boolean(barberId))) {
+    return NextResponse.json({ erro: "Categoria não permitida para essa despesa" }, { status: 400 });
   }
 
   if (!(await barbeiroValido(orgId, barberId))) {

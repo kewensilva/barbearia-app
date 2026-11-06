@@ -3,7 +3,12 @@
 import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { hojeBrasil } from "@/lib/data";
-import { CATEGORIAS_MANUAIS, type CategoriaManual } from "@/lib/despesa";
+import {
+  CATEGORIAS_BARBEIRO,
+  CATEGORIAS_MANUAIS,
+  rotuloCategoria,
+  type CategoriaManual,
+} from "@/lib/despesa";
 
 type Usuario = { id: string; nome: string; role: "admin" | "barber" };
 type Despesa = {
@@ -20,6 +25,17 @@ type Despesa = {
 
 // "todas" só existe no filtro; null = barbearia; string = id do barbeiro.
 type Filtro = "todas" | string | null;
+
+function categoriasPara(ehDespesaDeBarbeiro: boolean): readonly CategoriaManual[] {
+  return ehDespesaDeBarbeiro ? CATEGORIAS_BARBEIRO : CATEGORIAS_MANUAIS;
+}
+
+function exemploDescricao(categoria: CategoriaManual, ehDespesaDeBarbeiro: boolean): string {
+  if (categoria === "produtos") return "Ex: Shampoo, pomada, lâminas";
+  if (categoria === "manutencao") return "Ex: Conserto da máquina, afiar tesoura";
+  if (categoria === "outros") return "Descreva a despesa (o que quiser)";
+  return ehDespesaDeBarbeiro ? "Descrição" : "Ex: Conta de energia";
+}
 
 export default function Despesas() {
   return (
@@ -71,6 +87,14 @@ function DespesasContent() {
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(carregar, [usuarios]);
+
+  const despesaDeBarbeiro = ehBarbeiro || donoId !== null;
+  const categoriasDisponiveis = categoriasPara(despesaDeBarbeiro);
+
+  function escolherDono(id: string | null) {
+    setDonoId(id);
+    if (!categoriasPara(id !== null).includes(categoria)) setCategoria("produtos");
+  }
 
   const valorNumero = Number(valor.replace(",", "."));
   const podeSalvar = descricao.trim() !== "" && valor !== "" && valorNumero > 0 && !salvando;
@@ -128,7 +152,7 @@ function DespesasContent() {
       </div>
       <p className="subtitle">
         {ehBarbeiro
-          ? "Compras que você fez pra trabalhar (máquina, shampoo, produtos...)"
+          ? "Produtos, manutenção e outros gastos do seu trabalho na barbearia"
           : "Despesas da barbearia e de cada barbeiro"}
       </p>
 
@@ -138,19 +162,23 @@ function DespesasContent() {
         {!ehBarbeiro && barbeiros.length > 0 && (
           <>
             <p className="section-label" style={{ marginTop: 0 }}>De quem é a despesa</p>
-            <EscolhaDono barbeiros={barbeiros} valor={donoId} onEscolher={setDonoId} />
+            <EscolhaDono barbeiros={barbeiros} valor={donoId} onEscolher={escolherDono} />
           </>
         )}
 
+        <p className="section-label" style={{ marginTop: 0 }}>Categoria</p>
+        <EscolhaCategoria
+          categorias={categoriasDisponiveis}
+          valor={categoria}
+          onEscolher={setCategoria}
+        />
+
         <input
           className="input"
-          placeholder={ehBarbeiro ? "Descrição (ex: Máquina de corte)" : "Descrição (ex: Conta de energia)"}
+          placeholder={exemploDescricao(categoria, despesaDeBarbeiro)}
           value={descricao}
           onChange={(e) => setDescricao(e.target.value)}
         />
-
-        <p className="section-label">Categoria</p>
-        <EscolhaCategoria valor={categoria} onEscolher={setCategoria} />
 
         <input
           className="input"
@@ -251,22 +279,24 @@ function EscolhaDono({
 }
 
 function EscolhaCategoria({
+  categorias,
   valor,
   onEscolher,
 }: {
+  categorias: readonly CategoriaManual[];
   valor: CategoriaManual;
   onEscolher: (c: CategoriaManual) => void;
 }) {
   return (
     <div className="row" style={{ gap: 8, flexWrap: "wrap", marginBottom: 12 }}>
-      {CATEGORIAS_MANUAIS.map((c) => (
+      {categorias.map((c) => (
         <button
           key={c}
           className={`option-btn ${valor === c ? "selected" : ""}`}
           style={{ flex: "1 1 28%" }}
           onClick={() => onEscolher(c)}
         >
-          {c}
+          {rotuloCategoria(c)}
         </button>
       ))}
     </div>
@@ -298,6 +328,14 @@ function DespesaItem({
   const [data, setData] = useState(despesa.data);
   const [recorrente, setRecorrente] = useState(despesa.recorrente);
   const [donoId, setDonoId] = useState<string | null>(despesa.barber_id);
+
+  const despesaDeBarbeiro = donoId !== null;
+  const categoriasDisponiveis = categoriasPara(despesaDeBarbeiro);
+
+  function escolherDono(id: string | null) {
+    setDonoId(id);
+    if (!categoriasPara(id !== null).includes(categoria)) setCategoria("produtos");
+  }
 
   const valorNumero = Number(valor.replace(",", "."));
   const podeSalvar = descricao.trim() !== "" && valor !== "" && valorNumero > 0 && data !== "";
@@ -360,19 +398,23 @@ function DespesaItem({
         {barbeiros && barbeiros.length > 0 && (
           <>
             <p className="section-label" style={{ marginTop: 0 }}>De quem é a despesa</p>
-            <EscolhaDono barbeiros={barbeiros} valor={donoId} onEscolher={setDonoId} />
+            <EscolhaDono barbeiros={barbeiros} valor={donoId} onEscolher={escolherDono} />
           </>
         )}
 
+        <p className="section-label" style={{ marginTop: 0 }}>Categoria</p>
+        <EscolhaCategoria
+          categorias={categoriasDisponiveis}
+          valor={categoria}
+          onEscolher={setCategoria}
+        />
+
         <input
           className="input"
-          placeholder="Descrição"
+          placeholder={exemploDescricao(categoria, despesaDeBarbeiro)}
           value={descricao}
           onChange={(e) => setDescricao(e.target.value)}
         />
-
-        <p className="section-label" style={{ marginTop: 0 }}>Categoria</p>
-        <EscolhaCategoria valor={categoria} onEscolher={setCategoria} />
 
         <p className="section-label" style={{ marginTop: 0 }}>Valor (R$)</p>
         <input
@@ -410,7 +452,8 @@ function DespesaItem({
         <div>
           <div>{despesa.descricao}</div>
           <div className="subtitle" style={{ marginBottom: 0 }}>
-            {new Date(`${despesa.data}T00:00:00`).toLocaleDateString("pt-BR")} · {despesa.categoria}
+            {new Date(`${despesa.data}T00:00:00`).toLocaleDateString("pt-BR")} ·{" "}
+            {rotuloCategoria(despesa.categoria)}
             {despesa.recorrente ? " · recorrente" : ""}
             {barbeiros ? ` · ${despesa.users?.nome ?? "Barbearia"}` : ""}
           </div>

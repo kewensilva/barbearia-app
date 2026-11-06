@@ -4,6 +4,7 @@ import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { AtendimentoItem, type Atendimento, type Servico, type Produto } from "@/app/components/AtendimentoItem";
 import { formatarDataBrasil } from "@/lib/data";
+import { rotuloCategoria } from "@/lib/despesa";
 
 type Preset = "hoje" | "semana" | "mes" | "custom";
 
@@ -194,7 +195,7 @@ function RelatorioContent() {
             )}
             {relatorio.despesasPorCategoria.map((c) => (
               <div key={c.categoria} className="tx-item">
-                <div>{c.categoria}</div>
+                <div>{rotuloCategoria(c.categoria)}</div>
                 <div>{c.total.toLocaleString('pt-BR', {style:"currency", currency:"BRL"})}</div>
               </div>
             ))}

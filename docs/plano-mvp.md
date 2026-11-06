@@ -39,9 +39,9 @@ Um fechamento:
 O dono também pode fazer fechamento do seu próprio período (mesmo não recebendo comissão de si mesmo), só para saber quanto ele faturou.
 
 ### 3.5 Despesas
-Cadastro simples: descrição, categoria (aluguel, energia, internet, produtos, equipamentos, comissão, outros), valor, data, recorrente (sim/não — se recorrente, pode ter dia fixo do mês).
+Cadastro simples: descrição, categoria (aluguel, energia, internet, produtos, manutenção, equipamentos, comissão, outros), valor, data, recorrente (sim/não — se recorrente, pode ter dia fixo do mês).
 
-Cada despesa pertence à **barbearia** ou a um **barbeiro** (ex: o barbeiro comprou a própria máquina, shampoo, produtos). O barbeiro lança e vê só as próprias despesas; o admin vê todas e pode lançar em nome de qualquer barbeiro. Despesa de barbeiro é saída do caixa geral da barbearia como qualquer outra — **não** é descontada nem reembolsada na comissão. O relatório mostra o total de despesas por responsável.
+Cada despesa pertence à **barbearia** ou a um **barbeiro** (ex: o barbeiro comprou a própria máquina, shampoo, produtos). O barbeiro lança e vê só as próprias despesas, e só nas categorias do trabalho dele — **produtos, manutenção e outros** (em "outros" ele descreve livremente no campo de descrição); aluguel, energia, internet etc. são só da barbearia; o admin vê todas e pode lançar em nome de qualquer barbeiro. Despesa de barbeiro é saída do caixa geral da barbearia como qualquer outra — **não** é descontada nem reembolsada na comissão. O relatório mostra o total de despesas por responsável.
 
 ### 3.6 Fluxo de caixa consolidado
 Tela do admin mostrando: entradas (todos os atendimentos, de qualquer barbeiro) − saídas (despesas, incluindo comissões pagas) = saldo do período. Filtro por dia/semana/mês/personalizado.

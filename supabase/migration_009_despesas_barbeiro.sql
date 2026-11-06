@@ -3,7 +3,9 @@
 -- Cada despesa pode pertencer a um barbeiro (quem comprou a
 -- máquina, o shampoo...) ou à barbearia (barber_id null).
 -- Continua sendo saída do caixa geral — não mexe na comissão.
--- Também adiciona a categoria "equipamentos" (máquina, tesoura).
+-- Também adiciona as categorias "manutencao" e "equipamentos".
+-- Despesa de barbeiro só aceita produtos, manutencao e outros
+-- (validado na API, ver lib/despesa.ts).
 -- =========================================================
 
 alter table expenses
@@ -17,4 +19,4 @@ alter table expenses
 
 alter table expenses
   add constraint expenses_categoria_check
-  check (categoria in ('aluguel', 'energia', 'internet', 'produtos', 'equipamentos', 'comissao', 'outros'));
+  check (categoria in ('aluguel', 'energia', 'internet', 'produtos', 'manutencao', 'equipamentos', 'comissao', 'outros'));

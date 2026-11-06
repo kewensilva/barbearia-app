@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { getOrgId } from "@/lib/org";
-import { CATEGORIAS_MANUAIS } from "@/lib/despesa";
+import { categoriaPermitida } from "@/lib/despesa";
 import { SELECT_DESPESA, barbeiroValido } from "@/lib/despesaDb";
 
 export const dynamic = "force-dynamic";
@@ -11,7 +11,7 @@ export const dynamic = "force-dynamic";
 async function buscarDespesaManual(orgId: string, id: string) {
   const { data: despesa } = await supabaseAdmin
     .from("expenses")
-    .select("id, closing_id")
+    .select("id, closing_id, barber_id")
     .eq("id", id)
     .eq("org_id", orgId)
     .maybeSingle();
@@ -26,7 +26,7 @@ export async function PATCH(request: Request, { params }: { params: { id: string
   if (
     typeof descricao !== "string" ||
     descricao.trim() === "" ||
-    !CATEGORIAS_MANUAIS.includes(categoria) ||
+    typeof categoria !== "string" ||
     typeof valor !== "number" ||
     valor <= 0 ||
     typeof data !== "string" ||
@@ -48,6 +48,12 @@ export async function PATCH(request: Request, { params }: { params: { id: string
 
   if (!(await barbeiroValido(orgId, barberId))) {
     return NextResponse.json({ erro: "Barbeiro não encontrado" }, { status: 404 });
+  }
+
+  // barberId undefined = continua com o dono atual da despesa
+  const donoFinal = barberId !== undefined ? barberId : despesa.barber_id;
+  if (!categoriaPermitida(categoria, Boolean(donoFinal))) {
+    return NextResponse.json({ erro: "Categoria não permitida para essa despesa" }, { status: 400 });
   }
 
   const { data: atualizada, error } = await supabaseAdmin
