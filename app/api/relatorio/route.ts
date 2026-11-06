@@ -30,7 +30,7 @@ export async function GET(request: Request) {
         .lte("criado_em", fimIso),
       supabaseAdmin
         .from("expenses")
-        .select("valor, categoria")
+        .select("valor, categoria, barber_id, users(nome)")
         .eq("org_id", orgId)
         .gte("data", inicio)
         .lte("data", fim),
@@ -63,6 +63,18 @@ export async function GET(request: Request) {
     porCategoria.set(d.categoria, (porCategoria.get(d.categoria) ?? 0) + d.valor);
   }
 
+  // Despesas sem barber_id (incluindo comissões pagas) são da barbearia.
+  const porResponsavel = new Map<string, { nome: string; total: number }>();
+  for (const d of despesas ?? []) {
+    const chave = d.barber_id ?? "barbearia";
+    const nome = d.barber_id
+      ? (d.users as unknown as { nome: string } | null)?.nome ?? "—"
+      : "Barbearia";
+    const atual = porResponsavel.get(chave) ?? { nome, total: 0 };
+    atual.total += d.valor;
+    porResponsavel.set(chave, atual);
+  }
+
   return NextResponse.json({
     entradas,
     saidas,
@@ -72,6 +84,7 @@ export async function GET(request: Request) {
       categoria,
       total,
     })),
+    despesasPorResponsavel: Array.from(porResponsavel.values()).sort((a, b) => b.total - a.total),
     cortesias: cortesias
       .map((t) => ({
         clienteNome: t.cliente_nome,

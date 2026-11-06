@@ -39,7 +39,9 @@ Um fechamento:
 O dono também pode fazer fechamento do seu próprio período (mesmo não recebendo comissão de si mesmo), só para saber quanto ele faturou.
 
 ### 3.5 Despesas
-Cadastro simples: descrição, categoria (aluguel, energia, internet, produtos, comissão, outros), valor, data, recorrente (sim/não — se recorrente, pode ter dia fixo do mês).
+Cadastro simples: descrição, categoria (aluguel, energia, internet, produtos, equipamentos, comissão, outros), valor, data, recorrente (sim/não — se recorrente, pode ter dia fixo do mês).
+
+Cada despesa pertence à **barbearia** ou a um **barbeiro** (ex: o barbeiro comprou a própria máquina, shampoo, produtos). O barbeiro lança e vê só as próprias despesas; o admin vê todas e pode lançar em nome de qualquer barbeiro. Despesa de barbeiro é saída do caixa geral da barbearia como qualquer outra — **não** é descontada nem reembolsada na comissão. O relatório mostra o total de despesas por responsável.
 
 ### 3.6 Fluxo de caixa consolidado
 Tela do admin mostrando: entradas (todos os atendimentos, de qualquer barbeiro) − saídas (despesas, incluindo comissões pagas) = saldo do período. Filtro por dia/semana/mês/personalizado.
@@ -63,7 +65,8 @@ transactions (id, org_id, barber_id, service_id, valor_cobrado, forma_pagamento,
 closings (id, org_id, barber_id, periodo_inicio, periodo_fim, total_bruto,
           total_comissao, status[pendente|pago], pago_em)
 
-expenses (id, org_id, descricao, categoria, valor, data, recorrente, closing_id[nullable])
+expenses (id, org_id, barber_id[nullable = barbearia], descricao, categoria, valor, data,
+          recorrente, closing_id[nullable])
 ```
 
 `closing_id` em `transactions` e `expenses` marca o que já foi "fechado", evitando contar duas vezes.

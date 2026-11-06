@@ -1,20 +1,28 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { getOrgId } from "@/lib/org";
+import { CATEGORIAS_MANUAIS } from "@/lib/despesa";
+import { SELECT_DESPESA, barbeiroValido } from "@/lib/despesaDb";
 
 export const dynamic = "force-dynamic";
 
-const CATEGORIAS_MANUAIS = ["aluguel", "energia", "internet", "produtos", "outros"];
-
-export async function GET() {
+export async function GET(request: Request) {
   const orgId = await getOrgId();
+  const { searchParams } = new URL(request.url);
+  const barbeiro = searchParams.get("barbeiro");
 
-  const { data, error } = await supabaseAdmin
+  let query = supabaseAdmin
     .from("expenses")
-    .select("id, descricao, categoria, valor, data, recorrente, closing_id, criado_em")
+    .select(SELECT_DESPESA)
     .eq("org_id", orgId)
     .order("data", { ascending: false })
     .limit(100);
+
+  if (barbeiro) {
+    query = query.eq("barber_id", barbeiro);
+  }
+
+  const { data, error } = await query;
 
   if (error) {
     return NextResponse.json({ erro: error.message }, { status: 500 });
@@ -25,7 +33,7 @@ export async function GET() {
 
 export async function POST(request: Request) {
   const orgId = await getOrgId();
-  const { descricao, categoria, valor, data, recorrente } = await request.json();
+  const { descricao, categoria, valor, data, recorrente, barberId } = await request.json();
 
   if (
     typeof descricao !== "string" ||
@@ -38,6 +46,10 @@ export async function POST(request: Request) {
     return NextResponse.json({ erro: "Requisição inválida" }, { status: 400 });
   }
 
+  if (!(await barbeiroValido(orgId, barberId))) {
+    return NextResponse.json({ erro: "Barbeiro não encontrado" }, { status: 404 });
+  }
+
   const { data: despesa, error } = await supabaseAdmin
     .from("expenses")
     .insert({
@@ -47,8 +59,9 @@ export async function POST(request: Request) {
       valor,
       data,
       recorrente: Boolean(recorrente),
+      barber_id: barberId ?? null,
     })
-    .select()
+    .select(SELECT_DESPESA)
     .single();
 
   if (error) {

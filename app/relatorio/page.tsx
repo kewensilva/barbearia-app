@@ -13,6 +13,7 @@ type Relatorio = {
   saldo: number;
   comparativoBarbeiros: { nome: string; total: number; quantidade: number }[];
   despesasPorCategoria: { categoria: string; total: number }[];
+  despesasPorResponsavel: { nome: string; total: number }[];
   cortesias: {
     clienteNome: string | null;
     servicoNome: string | null;
@@ -195,6 +196,19 @@ function RelatorioContent() {
               <div key={c.categoria} className="tx-item">
                 <div>{c.categoria}</div>
                 <div>{c.total.toLocaleString('pt-BR', {style:"currency", currency:"BRL"})}</div>
+              </div>
+            ))}
+          </div>
+
+          <p className="section-label">Despesas por responsável</p>
+          <div className="card">
+            {relatorio.despesasPorResponsavel.length === 0 && (
+              <p className="subtitle">Nenhuma despesa no período</p>
+            )}
+            {relatorio.despesasPorResponsavel.map((r) => (
+              <div key={r.nome} className="tx-item">
+                <div>{r.nome}</div>
+                <div>{r.total.toLocaleString('pt-BR', {style:"currency", currency:"BRL"})}</div>
               </div>
             ))}
           </div>

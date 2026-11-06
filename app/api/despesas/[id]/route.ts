@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { getOrgId } from "@/lib/org";
+import { CATEGORIAS_MANUAIS } from "@/lib/despesa";
+import { SELECT_DESPESA, barbeiroValido } from "@/lib/despesaDb";
 
 export const dynamic = "force-dynamic";
-
-const CATEGORIAS_MANUAIS = ["aluguel", "energia", "internet", "produtos", "outros"];
 
 // Despesas geradas por um fechamento (comissão) não podem ser alteradas
 // por aqui — senão o fluxo de caixa deixa de bater com o fechamento pago.
@@ -21,7 +21,7 @@ async function buscarDespesaManual(orgId: string, id: string) {
 
 export async function PATCH(request: Request, { params }: { params: { id: string } }) {
   const orgId = await getOrgId();
-  const { descricao, categoria, valor, data, recorrente } = await request.json();
+  const { descricao, categoria, valor, data, recorrente, barberId } = await request.json();
 
   if (
     typeof descricao !== "string" ||
@@ -46,6 +46,10 @@ export async function PATCH(request: Request, { params }: { params: { id: string
     );
   }
 
+  if (!(await barbeiroValido(orgId, barberId))) {
+    return NextResponse.json({ erro: "Barbeiro não encontrado" }, { status: 404 });
+  }
+
   const { data: atualizada, error } = await supabaseAdmin
     .from("expenses")
     .update({
@@ -54,10 +58,12 @@ export async function PATCH(request: Request, { params }: { params: { id: string
       valor,
       data,
       recorrente: Boolean(recorrente),
+      // undefined = não mexe em quem é o dono da despesa
+      ...(barberId !== undefined ? { barber_id: barberId } : {}),
     })
     .eq("id", params.id)
     .eq("org_id", orgId)
-    .select("id, descricao, categoria, valor, data, recorrente, closing_id, criado_em")
+    .select(SELECT_DESPESA)
     .single();
 
   if (error) {

@@ -190,6 +190,15 @@ function LancamentoContent() {
               métricas
             </button>
           )}
+          {roleUsuario === "barber" && !modoOperacional && (
+            <button
+              className="tag"
+              style={{ border: "none", cursor: "pointer" }}
+              onClick={() => router.push(`/despesas?usuario=${usuarioId}`)}
+            >
+              despesas
+            </button>
+          )}
           <button
             className="tag"
             style={{ border: "none", cursor: "pointer" }}
@@ -216,6 +225,13 @@ function LancamentoContent() {
             onClick={() => router.push(`/metricas?usuario=${usuarioId}`)}
           >
             Ver meu relatório de atendimentos e comissão
+          </button>
+          <button
+            className="primary-btn"
+            style={{ background: "#78716c" }}
+            onClick={() => router.push(`/despesas?usuario=${usuarioId}`)}
+          >
+            Lançar minhas despesas
           </button>
         </div>
       ) : (
